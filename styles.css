@@ -1,0 +1,23 @@
+/* Change these paths if your BHH Bogle files use different names. */
+@font-face { font-family: "BHH Bogle"; src: url("assets/fonts/BHHBogle-Light.woff2") format("woff2"); font-style: normal; font-weight: 300 400; font-display: swap; }
+@font-face { font-family: "BHH Bogle"; src: url("assets/fonts/BHHBogle-Bold.woff2") format("woff2"); font-style: normal; font-weight: 700 900; font-display: swap; }
+:root { --ink:#000; --paper:#fff; --font:"BHH Bogle", "Helvetica Neue", Helvetica, Arial, sans-serif; --name-font:"BBH Bogle", "Helvetica Neue", Helvetica, Arial, sans-serif; }
+* { box-sizing:border-box; } html,body { margin:0; min-height:100%; background:var(--paper); color:var(--ink); overscroll-behavior-y:none; scrollbar-width:none; } html::-webkit-scrollbar,body::-webkit-scrollbar { display:none; } body { font-family:var(--font); }
+.hero-scroll { height:500vh; }.stage { position:sticky; top:0; height:100vh; height:100svh; overflow:hidden; isolation:isolate; perspective:1100px; }
+.filters { position:absolute; width:0; height:0; overflow:hidden; }
+.title-group { position:absolute; z-index:2; top:50%; left:50%; display:flex; flex-direction:column; align-items:center; transform:translate(-50%,-50%); transform-origin:center; pointer-events:none; will-change:transform,filter,opacity; }
+h1 { width:max-content; max-width:70vw; margin:0; white-space:nowrap; font-family:var(--name-font); font-size:clamp(3.25rem,10.65vw,10.5rem); font-weight:400; line-height:.86; letter-spacing:.01em; transform-origin:center; will-change:transform,filter; }
+h1>span { display:inline-block; will-change:transform; } h1>.space { width:.27em; }
+#line-entrance { display:flex; justify-content:center; height:1.22em; margin-top:.31em; overflow:hidden; perspective:760px; } #rotating-line { display:flex; align-items:baseline; justify-content:center; gap:.28em; width:auto; margin:0; padding:0; opacity:0; color:var(--ink); background:transparent; border:0; font:300 clamp(1.1rem,2.1vw,2.1rem)/1 var(--font); white-space:nowrap; cursor:pointer; text-shadow:.13px 0 currentColor,-.06px .1px currentColor; transform-origin:center bottom; transform-style:preserve-3d; will-change:opacity,transform,filter; } #rotating-line:focus-visible { outline:2px solid #000; outline-offset:6px; } #word-slot { position:relative; display:block; height:1em; overflow:hidden; perspective:760px; mask-image:linear-gradient(to bottom,transparent 0%,#000 17%,#000 83%,transparent 100%); } #word-drum { position:absolute; inset:0; transform-style:preserve-3d; } .word-face { position:absolute; inset:0 var(--word-safe-pad,0px); display:block; white-space:nowrap; text-align:right; backface-visibility:hidden; transform-origin:center center; will-change:transform,opacity,filter; } #word-measure { position:absolute; visibility:hidden; pointer-events:none; font:300 clamp(1.1rem,2.1vw,2.1rem)/1 var(--font); white-space:nowrap; }
+/* The title group is non-interactive; the reel explicitly opts back in. */
+#line-entrance, #rotating-line { pointer-events:auto; }
+/* Keep the complete phrase on one visual baseline and centered under the title. */
+#line-entrance { width:100%; align-items:center; }
+#rotating-line { align-items:center; }
+#word-slot { flex:0 0 auto; }
+/* Deliberately right-align the phrase beneath the name. */
+#line-entrance { justify-content:flex-end; }
+#rotating-line { font-size:clamp(1.25rem,2.45vw,2.55rem); }
+.scroll-cue { position:absolute; z-index:3; bottom:29px; left:50%; margin:0; font-size:11px; font-weight:300; letter-spacing:.04em; transform:translateX(-50%); will-change:opacity; }
+@media (max-width:600px) { h1 { max-width:80vw; font-size:clamp(3rem,15.1vw,5.1rem); }.title-group { width:100%; }.scroll-cue { bottom:21px; } }
+@media (prefers-reduced-motion:reduce) { .hero-scroll { height:100vh; } }
