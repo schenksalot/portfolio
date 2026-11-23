@@ -68,12 +68,6 @@ function getPagePadding() {
   return padding;
 }
 
-function getViewportHeight() {
-  return window.visualViewport
-    ? window.visualViewport.height
-    : document.documentElement.clientHeight;
-}
-
 function getInsetFrame(pagePad = getPagePadding()) {
   const viewportWidth = document.documentElement.clientWidth;
   const viewportHeight = document.documentElement.clientHeight;
@@ -269,10 +263,16 @@ function setupCardEdges() {
 
   let pagePad = getPagePadding();
   const header = document.querySelector(".site-header");
+  const viewportMeasurement = document.createElement("div");
   let edgeUpdateQueued = false;
 
+  viewportMeasurement.setAttribute("aria-hidden", "true");
+  viewportMeasurement.className = "viewport-height-measurement";
+  document.body.append(viewportMeasurement);
+
   function updateVisibleCardEdges() {
-    const bottomEdge = getViewportHeight() - pagePad;
+    // Match the fixed mask to CSS's dynamic viewport as mobile browser chrome moves.
+    const bottomEdge = viewportMeasurement.getBoundingClientRect().bottom - pagePad;
     const pixelRatio = window.devicePixelRatio || 1;
     const edgeThreshold = 1 / pixelRatio;
     const headerBottom = header

@@ -324,6 +324,17 @@ body:has(.project-grid)::before {
   pointer-events: none;
 }
 
+/* Lets script read the browser's current dynamic viewport in fixed-position coordinates. */
+.viewport-height-measurement {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 100dvh;
+  visibility: hidden;
+  pointer-events: none;
+}
+
 .project-grid.is-transitioning {
   pointer-events: none;
 }
