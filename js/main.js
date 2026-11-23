@@ -69,7 +69,7 @@ function getPagePadding() {
 }
 
 function getViewportHeight() {
-  return window.visualViewport
+  return window.matchMedia("(max-width: 700px)").matches && window.visualViewport
     ? window.visualViewport.height
     : document.documentElement.clientHeight;
 }
@@ -273,7 +273,8 @@ function setupCardEdges() {
   function updateVisibleCardEdges() {
     const bottomEdge = getViewportHeight() - pagePad;
     const pixelRatio = window.devicePixelRatio || 1;
-    const edgeThreshold = 1 / pixelRatio;
+    const isMobileViewport = window.matchMedia("(max-width: 700px)").matches;
+    const edgeThreshold = isMobileViewport ? 1 / pixelRatio : 0;
     const headerBottom = header
       ? Math.round(header.getBoundingClientRect().bottom * pixelRatio) / pixelRatio
       : 0;
@@ -283,7 +284,11 @@ function setupCardEdges() {
     }));
 
     document.documentElement.style.setProperty("--header-bottom", `${headerBottom}px`);
-    document.documentElement.style.setProperty("--bottom-edge", `${bottomEdge}px`);
+    if (isMobileViewport) {
+      document.documentElement.style.setProperty("--bottom-edge", `${bottomEdge}px`);
+    } else {
+      document.documentElement.style.removeProperty("--bottom-edge");
+    }
 
     cardRects.forEach(({ block, rect }) => {
       const intersectsBottomEdge = rect.top < bottomEdge && rect.bottom > bottomEdge + edgeThreshold;
@@ -320,8 +325,13 @@ function setupCardEdges() {
     updateVisibleCardEdges();
   });
   if (window.visualViewport) {
-    window.visualViewport.addEventListener("resize", updateVisibleCardEdges);
-    window.visualViewport.addEventListener("scroll", updateVisibleCardEdges);
+    const updateMobileViewportEdges = () => {
+      if (window.matchMedia("(max-width: 700px)").matches) {
+        updateVisibleCardEdges();
+      }
+    };
+    window.visualViewport.addEventListener("resize", updateMobileViewportEdges);
+    window.visualViewport.addEventListener("scroll", updateMobileViewportEdges);
   }
   updateVisibleCardEdges();
 }
