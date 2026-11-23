@@ -215,8 +215,8 @@ main {
 /* Redraws an intersecting card's top border at the sticky header's lower edge. */
 .project-block.is-top-clipped::before {
   position: fixed;
-  z-index: 11;
-  top: calc(var(--header-bottom) - 1px);
+  z-index: 9;
+  top: var(--header-bottom);
   left: var(--top-edge-left);
   width: var(--top-edge-width);
   height: 1px;
