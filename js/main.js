@@ -69,7 +69,7 @@ function getPagePadding() {
 }
 
 function getViewportHeight() {
-  return window.matchMedia("(max-width: 700px)").matches && window.visualViewport
+  return window.visualViewport
     ? window.visualViewport.height
     : document.documentElement.clientHeight;
 }
@@ -269,12 +269,12 @@ function setupCardEdges() {
 
   let pagePad = getPagePadding();
   const header = document.querySelector(".site-header");
+  let edgeUpdateQueued = false;
 
   function updateVisibleCardEdges() {
     const bottomEdge = getViewportHeight() - pagePad;
     const pixelRatio = window.devicePixelRatio || 1;
-    const isMobileViewport = window.matchMedia("(max-width: 700px)").matches;
-    const edgeThreshold = isMobileViewport ? 1 / pixelRatio : 0;
+    const edgeThreshold = 1 / pixelRatio;
     const headerBottom = header
       ? Math.round(header.getBoundingClientRect().bottom * pixelRatio) / pixelRatio
       : 0;
@@ -284,11 +284,7 @@ function setupCardEdges() {
     }));
 
     document.documentElement.style.setProperty("--header-bottom", `${headerBottom}px`);
-    if (isMobileViewport) {
-      document.documentElement.style.setProperty("--bottom-edge", `${bottomEdge}px`);
-    } else {
-      document.documentElement.style.removeProperty("--bottom-edge");
-    }
+    document.documentElement.style.setProperty("--bottom-edge", `${bottomEdge}px`);
 
     cardRects.forEach(({ block, rect }) => {
       const intersectsBottomEdge = rect.top < bottomEdge && rect.bottom > bottomEdge + edgeThreshold;
@@ -319,19 +315,27 @@ function setupCardEdges() {
     });
   }
 
-  window.addEventListener("scroll", updateVisibleCardEdges, { passive: true });
+  function scheduleVisibleCardEdgeUpdate() {
+    if (edgeUpdateQueued) {
+      return;
+    }
+
+    edgeUpdateQueued = true;
+    window.requestAnimationFrame(() => {
+      edgeUpdateQueued = false;
+      updateVisibleCardEdges();
+    });
+  }
+
+  window.addEventListener("scroll", scheduleVisibleCardEdgeUpdate, { passive: true });
   window.addEventListener("resize", () => {
     pagePad = getPagePadding();
-    updateVisibleCardEdges();
+    scheduleVisibleCardEdgeUpdate();
   });
+  document.addEventListener("fullscreenchange", scheduleVisibleCardEdgeUpdate);
   if (window.visualViewport) {
-    const updateMobileViewportEdges = () => {
-      if (window.matchMedia("(max-width: 700px)").matches) {
-        updateVisibleCardEdges();
-      }
-    };
-    window.visualViewport.addEventListener("resize", updateMobileViewportEdges);
-    window.visualViewport.addEventListener("scroll", updateMobileViewportEdges);
+    window.visualViewport.addEventListener("resize", scheduleVisibleCardEdgeUpdate);
+    window.visualViewport.addEventListener("scroll", scheduleVisibleCardEdgeUpdate);
   }
   updateVisibleCardEdges();
 }

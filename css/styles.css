@@ -14,7 +14,7 @@
   --block-space: 1.5rem;
   --name-fps: 10; /* Animation frames per second. */
   --name-steps: 8; /* Ping-pong order: 1,2,3,4,5,4,3,2. */
-  --name-width: 100%; /* Visible name width. */
+  --name-width: min(100%, clamp(260px, calc(13vw + 31.5rem), 800px)); /* Visible name width. */
 }
 
 *,
@@ -37,12 +37,14 @@ svg {
 
 body {
   min-height: 100vh;
+  width: 100%;
   overscroll-behavior: none;
   background: var(--bg);
   color: var(--ink);
   font-family: var(--font);
   line-height: 1.5;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto minmax(0, 1fr);
 }
 
@@ -57,6 +59,7 @@ body {
   z-index: 10;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
+  align-items: center;
   row-gap: 0.75rem;
   padding: var(--site-header-pad);
   background: var(--bg);
@@ -64,17 +67,21 @@ body {
 
 #site-name {
   min-width: 0;
-  width: 100%;
+  width: var(--name-width);
+  align-self: center;
 }
 
 nav {
   display: flex;
+  align-items: center;
   width: 100%;
   justify-content: space-between;
   gap: clamp(1.25rem, 3vw, 3rem);
 }
 
 nav a {
+  display: inline-flex;
+  align-items: center;
   color: inherit;
   font-size: clamp(1rem, 1.7vw, 1.375rem);
   font-weight: 300;
@@ -87,13 +94,44 @@ nav a:focus-visible {
   text-underline-offset: 0.2em;
 }
 
+@media (max-width: 900px) {
+  .site-header {
+    row-gap: 0.35rem;
+    padding-top: clamp(1.25rem, 3vw, 2rem);
+    padding-bottom: clamp(1.25rem, 3vw, 2rem);
+  }
+
+  nav {
+    width: fit-content;
+    justify-self: start;
+    justify-content: flex-start;
+    gap: 0.85rem;
+  }
+
+}
+
+@media (min-width: 901px) {
+  .site-header {
+    grid-template-columns: minmax(0, 1fr) auto;
+    row-gap: 0;
+  }
+
+  nav {
+    width: auto;
+    justify-self: end;
+    justify-content: flex-end;
+  }
+}
+
 /* Crops the five-frame strip to one visible name. */
 .name-anim {
   display: block;
-  width: var(--name-width);
+  /* Compensates for the sprite's transparent cell gutter and visible left-side spacing. */
+  width: 102.4%;
   max-width: none;
   aspect-ratio: 1024 / 114;
   overflow: hidden;
+  transform: translateX(-2%);
 }
 
 /* Moves the sprite strip through its hand-drawn frames. */
@@ -120,15 +158,26 @@ nav a:focus-visible {
 
 main {
   min-height: 0;
-  padding: 0 var(--page-pad) var(--page-pad);
+  width: 100%;
+  min-width: 0;
+  padding: 0 var(--site-header-pad) var(--page-pad);
 }
 
 .project-grid {
   display: grid;
+  width: 100%;
+  min-width: 0;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   grid-template-rows: repeat(2, minmax(0, 1fr));
   gap: var(--grid-gap);
   height: 100%;
+}
+
+@media (max-width: 900px) {
+  .project-grid {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+  }
 }
 
 .project-block {
@@ -343,7 +392,7 @@ html.is-returning body::after {
   }
 
   main {
-    padding: 0 var(--page-pad) var(--page-pad);
+    padding: 0 var(--site-header-pad) var(--page-pad);
   }
 
   .project-grid {
