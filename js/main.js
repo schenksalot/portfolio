@@ -266,6 +266,7 @@ function setupCardEdges() {
   let pagePad = getPagePadding();
   const header = document.querySelector(".site-header");
   const viewportMeasurement = document.createElement("div");
+  const smallViewportMeasurement = document.createElement("div");
   const viewportDebugEnabled = new URLSearchParams(window.location.search)
     .has(CONFIG.viewportDebugParameter);
   let viewportDebug = null;
@@ -274,6 +275,9 @@ function setupCardEdges() {
   viewportMeasurement.setAttribute("aria-hidden", "true");
   viewportMeasurement.className = "viewport-height-measurement";
   document.body.append(viewportMeasurement);
+  smallViewportMeasurement.setAttribute("aria-hidden", "true");
+  smallViewportMeasurement.className = "small-viewport-height-measurement";
+  document.body.append(smallViewportMeasurement);
 
   if (viewportDebugEnabled) {
     viewportDebug = document.createElement("output");
@@ -286,6 +290,7 @@ function setupCardEdges() {
     const visualViewport = window.visualViewport;
     const candidates = [
       viewportMeasurement.getBoundingClientRect().bottom,
+      smallViewportMeasurement.getBoundingClientRect().bottom,
       window.innerHeight,
       document.documentElement.clientHeight,
       visualViewport && visualViewport.offsetTop + visualViewport.height,
@@ -315,6 +320,7 @@ function setupCardEdges() {
       const visualViewport = window.visualViewport;
       viewportDebug.textContent = [
         `CSS 100dvh: ${viewportMeasurement.getBoundingClientRect().bottom.toFixed(1)}`,
+        `CSS 100svh: ${smallViewportMeasurement.getBoundingClientRect().bottom.toFixed(1)}`,
         `innerHeight: ${window.innerHeight.toFixed(1)}`,
         `clientHeight: ${document.documentElement.clientHeight.toFixed(1)}`,
         `visual height: ${visualViewport ? visualViewport.height.toFixed(1) : "n/a"}`,

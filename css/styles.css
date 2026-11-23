@@ -335,6 +335,17 @@ body:has(.project-grid)::before {
   pointer-events: none;
 }
 
+/* Represents the smallest mobile viewport while browser chrome is expanded. */
+.small-viewport-height-measurement {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 100svh;
+  visibility: hidden;
+  pointer-events: none;
+}
+
 /* Temporary, query-string-gated viewport readings for mobile browser debugging. */
 .viewport-debug {
   position: fixed;
