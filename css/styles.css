@@ -349,9 +349,10 @@ body:has(.project-grid)::before {
 /* Temporary, query-string-gated viewport readings for mobile browser debugging. */
 .viewport-debug {
   position: fixed;
+  display: block;
   z-index: 200;
-  top: 0.5rem;
-  right: 0.5rem;
+  top: calc(env(safe-area-inset-top, 0px) + 0.5rem);
+  right: calc(env(safe-area-inset-right, 0px) + 0.5rem);
   max-width: calc(100% - 1rem);
   padding: 0.5rem;
   border: 1px solid var(--ink);

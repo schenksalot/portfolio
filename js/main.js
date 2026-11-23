@@ -267,8 +267,8 @@ function setupCardEdges() {
   const header = document.querySelector(".site-header");
   const viewportMeasurement = document.createElement("div");
   const smallViewportMeasurement = document.createElement("div");
-  const viewportDebugEnabled = new URLSearchParams(window.location.search)
-    .has(CONFIG.viewportDebugParameter);
+  const viewportDebugEnabled = window.matchMedia("(max-width: 700px)").matches
+    || new URLSearchParams(window.location.search).has(CONFIG.viewportDebugParameter);
   let viewportDebug = null;
   let edgeUpdateQueued = false;
 
