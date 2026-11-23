@@ -282,9 +282,22 @@ function setupCardEdges() {
     document.body.append(viewportDebug);
   }
 
+  function getSafeViewportBottom() {
+    const visualViewport = window.visualViewport;
+    const candidates = [
+      viewportMeasurement.getBoundingClientRect().bottom,
+      window.innerHeight,
+      document.documentElement.clientHeight,
+      visualViewport && visualViewport.offsetTop + visualViewport.height,
+    ].filter((value) => Number.isFinite(value) && value > 0);
+
+    return Math.min(...candidates);
+  }
+
   function updateVisibleCardEdges() {
-    // Match the fixed mask to CSS's dynamic viewport as mobile browser chrome moves.
-    const bottomEdge = viewportMeasurement.getBoundingClientRect().bottom - pagePad;
+    // Use the earliest browser-reported edge so card chrome never appears behind mobile UI.
+    const viewportBottom = getSafeViewportBottom();
+    const bottomEdge = viewportBottom - pagePad;
     const pixelRatio = window.devicePixelRatio || 1;
     const edgeThreshold = 1 / pixelRatio;
     const headerBottom = header
@@ -306,6 +319,7 @@ function setupCardEdges() {
         `clientHeight: ${document.documentElement.clientHeight.toFixed(1)}`,
         `visual height: ${visualViewport ? visualViewport.height.toFixed(1) : "n/a"}`,
         `visual offsetTop: ${visualViewport ? visualViewport.offsetTop.toFixed(1) : "n/a"}`,
+        `safe bottom: ${viewportBottom.toFixed(1)}`,
         `header edge: ${headerBottom.toFixed(1)}`,
         `bottom edge: ${bottomEdge.toFixed(1)}`,
       ].join("\n");
