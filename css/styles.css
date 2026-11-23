@@ -226,7 +226,7 @@ main {
 }
 
 /* Hides all homepage content below the lower page padding. */
-body:has(.project-grid)::before {
+body.project-edges-active::before {
   position: fixed;
   z-index: 20;
   top: var(--bottom-edge);
@@ -349,7 +349,7 @@ body:has(.project-grid)::before {
 /* Temporary, query-string-gated viewport readings for mobile browser debugging. */
 .viewport-debug {
   position: fixed;
-  display: block;
+  display: none;
   z-index: 200;
   top: calc(env(safe-area-inset-top, 0px) + 0.5rem);
   right: calc(env(safe-area-inset-right, 0px) + 0.5rem);
@@ -424,6 +424,26 @@ html.is-returning body::after {
 @media (max-width: 700px) {
   :root {
     --page-pad: var(--header-space-mobile);
+  }
+
+  .viewport-debug {
+    display: block;
+  }
+
+  /* Keeps the header's clipping edge continuous through fast touch scrolls. */
+  .site-header::after {
+    position: absolute;
+    right: var(--site-header-pad);
+    bottom: 0;
+    left: var(--site-header-pad);
+    height: 1px;
+    background: var(--ink);
+    content: "";
+    pointer-events: none;
+  }
+
+  .project-block.is-top-clipped::before {
+    display: none;
   }
 
   body {

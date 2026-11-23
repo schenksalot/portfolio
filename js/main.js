@@ -263,13 +263,16 @@ function setupCardEdges() {
     return;
   }
 
+  document.body.classList.add("project-edges-active");
   let pagePad = getPagePadding();
   const header = document.querySelector(".site-header");
   const viewportMeasurement = document.createElement("div");
   const smallViewportMeasurement = document.createElement("div");
   const viewportDebugEnabled = window.matchMedia("(max-width: 700px)").matches
     || new URLSearchParams(window.location.search).has(CONFIG.viewportDebugParameter);
-  let viewportDebug = null;
+  let viewportDebug = viewportDebugEnabled
+    ? document.querySelector(".viewport-debug")
+    : null;
   let edgeUpdateQueued = false;
 
   viewportMeasurement.setAttribute("aria-hidden", "true");
@@ -279,7 +282,7 @@ function setupCardEdges() {
   smallViewportMeasurement.className = "small-viewport-height-measurement";
   document.body.append(smallViewportMeasurement);
 
-  if (viewportDebugEnabled) {
+  if (viewportDebugEnabled && !viewportDebug) {
     viewportDebug = document.createElement("output");
     viewportDebug.className = "viewport-debug";
     viewportDebug.setAttribute("aria-label", "Viewport diagnostic values");
