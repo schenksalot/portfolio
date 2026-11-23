@@ -7,6 +7,8 @@ const CONFIG = {
   cornerPeak: 0,
   // Duration in milliseconds for the returning block content reveal.
   revealFade: 150,
+  // Query parameter that enables the temporary mobile viewport diagnostic panel.
+  viewportDebugParameter: "viewport-debug",
 };
 
 let transitionRunning = false;
@@ -264,11 +266,21 @@ function setupCardEdges() {
   let pagePad = getPagePadding();
   const header = document.querySelector(".site-header");
   const viewportMeasurement = document.createElement("div");
+  const viewportDebugEnabled = new URLSearchParams(window.location.search)
+    .has(CONFIG.viewportDebugParameter);
+  let viewportDebug = null;
   let edgeUpdateQueued = false;
 
   viewportMeasurement.setAttribute("aria-hidden", "true");
   viewportMeasurement.className = "viewport-height-measurement";
   document.body.append(viewportMeasurement);
+
+  if (viewportDebugEnabled) {
+    viewportDebug = document.createElement("output");
+    viewportDebug.className = "viewport-debug";
+    viewportDebug.setAttribute("aria-label", "Viewport diagnostic values");
+    document.body.append(viewportDebug);
+  }
 
   function updateVisibleCardEdges() {
     // Match the fixed mask to CSS's dynamic viewport as mobile browser chrome moves.
@@ -285,6 +297,19 @@ function setupCardEdges() {
 
     document.documentElement.style.setProperty("--header-bottom", `${headerBottom}px`);
     document.documentElement.style.setProperty("--bottom-edge", `${bottomEdge}px`);
+
+    if (viewportDebug) {
+      const visualViewport = window.visualViewport;
+      viewportDebug.textContent = [
+        `CSS 100dvh: ${viewportMeasurement.getBoundingClientRect().bottom.toFixed(1)}`,
+        `innerHeight: ${window.innerHeight.toFixed(1)}`,
+        `clientHeight: ${document.documentElement.clientHeight.toFixed(1)}`,
+        `visual height: ${visualViewport ? visualViewport.height.toFixed(1) : "n/a"}`,
+        `visual offsetTop: ${visualViewport ? visualViewport.offsetTop.toFixed(1) : "n/a"}`,
+        `header edge: ${headerBottom.toFixed(1)}`,
+        `bottom edge: ${bottomEdge.toFixed(1)}`,
+      ].join("\n");
+    }
 
     cardRects.forEach(({ block, rect }) => {
       const intersectsBottomEdge = rect.top < bottomEdge && rect.bottom > bottomEdge + edgeThreshold;

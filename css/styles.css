@@ -335,6 +335,22 @@ body:has(.project-grid)::before {
   pointer-events: none;
 }
 
+/* Temporary, query-string-gated viewport readings for mobile browser debugging. */
+.viewport-debug {
+  position: fixed;
+  z-index: 200;
+  top: 0.5rem;
+  right: 0.5rem;
+  max-width: calc(100% - 1rem);
+  padding: 0.5rem;
+  border: 1px solid var(--ink);
+  background: var(--bg);
+  color: var(--ink);
+  font: 0.75rem/1.35 ui-monospace, SFMono-Regular, Menlo, monospace;
+  white-space: pre;
+  pointer-events: none;
+}
+
 .project-grid.is-transitioning {
   pointer-events: none;
 }
