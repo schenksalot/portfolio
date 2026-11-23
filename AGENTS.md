@@ -1,0 +1,15 @@
+- Plain HTML, CSS and vanilla JS only. No frameworks, no build step, no npm packages unless I explicitly approve them.
+- No external network requests: no CDNs, no analytics, no tracking, no hotlinked fonts or images. Fonts are self-hosted in assets/fonts as woff2.
+- One CSS file (css/styles.css) and one JS file (js/main.js) for the shared site. No inline styles. Semantic HTML.
+- Animate only transform, opacity and filter. Always respect prefers-reduced-motion.
+- Keep it small: ask before adding any dependency, or any file over 50 KB.
+- All tunable values (timings, sizes, colors, physics) live in one CONFIG object at the top of main.js with comments.
+- Before making changes, state a short plan. After making changes, list the files changed and anything I need to provide.
+- Do not add features, sections, or content I did not ask for.
+- All pages live in the project root as flat .html files (index.html, phrases.html, melone-hatley.html, wikipedia.html, help-the-homeless.html). No subfolders for pages.
+- Use plain relative paths for every local file (css/styles.css, assets/img/..., index.html). Never use paths starting with "/".
+- In CSS, url() paths are relative to the CSS file (../assets/...), including future @font-face rules.
+- Every non-project page must include the same global header and the same preload, stylesheet and script tags. Project pages show only a back arrow in the frame header (no name, no nav) and do not preload the name sprite.
+- No JavaScript that fetches local files (it fails on file://), and no ES modules.
+- The fixed project-frame overlay is the sole exception to transform-only animation: one fixed element with no children may animate top, left, width, and height in a requestAnimationFrame loop with whole-device-pixel snapping so its 1px border remains exact.
+- The tiny inline return-state script in index.html is the sole inline-script exception; it prevents a project-frame flash before the reverse transition starts.

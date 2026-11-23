@@ -1,0 +1,380 @@
+/* BHH Bogle will replace this placeholder stack once self-hosted font files are added. */
+:root {
+  --bg: #ffffff;
+  --ink: #000000;
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --block-hover: #f4f4f4;
+  --header-space: 6rem;
+  --header-space-mobile: 2.75rem;
+  --page-pad: var(--header-space); /* Shared homepage and project-frame edge inset. */
+  --header-bottom: 0px;
+  --grid-gap: clamp(1rem, 2vw, 1.5rem);
+  --block-space: 1.5rem;
+  --name-fps: 10; /* Animation frames per second. */
+  --name-steps: 8; /* Ping-pong order: 1,2,3,4,5,4,3,2. */
+  --name-width: clamp(260px, 48vw, 800px); /* Visible name width. */
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  overscroll-behavior: none;
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+body {
+  min-height: 100vh;
+  overscroll-behavior: none;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font);
+  line-height: 1.5;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--header-space);
+  background: var(--bg);
+}
+
+#site-name {
+  min-width: 0;
+}
+
+nav {
+  display: flex;
+  gap: 3rem;
+}
+
+nav a {
+  color: inherit;
+  font-size: 1.375rem;
+  font-weight: 300;
+  text-decoration: none;
+}
+
+nav a:hover,
+nav a:focus-visible {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+/* Crops the five-frame strip to one visible name. */
+.name-anim {
+  display: block;
+  width: var(--name-width);
+  max-width: 100%;
+  aspect-ratio: 1024 / 114;
+  overflow: hidden;
+}
+
+/* Moves the sprite strip through its hand-drawn frames. */
+.name-strip {
+  display: block;
+  width: 500%;
+  max-width: none;
+  height: 100%;
+  will-change: transform;
+  animation: name-wiggle calc(var(--name-steps) / var(--name-fps) * 1s) steps(1, end) infinite;
+}
+
+@keyframes name-wiggle {
+  0% { transform: translateX(0); }
+  12.5% { transform: translateX(-20%); }
+  25% { transform: translateX(-40%); }
+  37.5% { transform: translateX(-60%); }
+  50% { transform: translateX(-80%); }
+  62.5% { transform: translateX(-60%); }
+  75% { transform: translateX(-40%); }
+  87.5% { transform: translateX(-20%); }
+  100% { transform: translateX(0); }
+}
+
+main {
+  min-height: 0;
+  padding: 0 var(--page-pad) var(--page-pad);
+}
+
+.project-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: var(--grid-gap);
+  height: 100%;
+}
+
+.project-block {
+  position: relative;
+  display: block;
+  min-height: 0;
+  padding: var(--block-space);
+  border: 1px solid var(--ink);
+  color: inherit;
+  text-decoration: none;
+}
+
+.project-content {
+  position: sticky;
+  top: calc(var(--header-bottom) + var(--block-space));
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+/* Redraws an intersecting card's bottom border at the fixed lower page padding. */
+.project-block.is-bottom-clipped::after {
+  position: fixed;
+  z-index: 21;
+  top: calc(100dvh - var(--page-pad) - 1px);
+  left: var(--bottom-edge-left);
+  width: var(--bottom-edge-width);
+  height: 1px;
+  background: var(--ink);
+  content: "";
+  pointer-events: none;
+}
+
+/* Redraws an intersecting card's top border at the sticky header's lower edge. */
+.project-block.is-top-clipped::before {
+  position: fixed;
+  z-index: 11;
+  top: calc(var(--header-bottom) - 1px);
+  left: var(--top-edge-left);
+  width: var(--top-edge-width);
+  height: 1px;
+  background: var(--ink);
+  content: "";
+  pointer-events: none;
+}
+
+/* Hides all homepage content below the lower page padding. */
+body:has(.project-grid)::before {
+  position: fixed;
+  z-index: 20;
+  top: calc(100dvh - var(--page-pad));
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background: var(--bg);
+  content: "";
+  pointer-events: none;
+}
+
+.project-block:hover,
+.project-block:focus-visible {
+  background: var(--block-hover);
+}
+
+.project-label,
+.project-block p {
+  font-size: 0.875rem;
+}
+
+.project-block h2 {
+  font-size: clamp(1.25rem, 2vw, 1.75rem);
+  font-weight: 400;
+  line-height: 1.15;
+}
+
+/* Fixed destination frame used by each project page. */
+.project-frame {
+  position: fixed;
+  inset: var(--page-pad);
+  box-sizing: border-box;
+  overflow-y: auto;
+  overscroll-behavior: none;
+  border: 1px solid var(--ink);
+  border-radius: 0;
+  background: var(--bg);
+}
+
+.frame-header {
+  padding: var(--header-space);
+}
+
+.frame-back {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  color: inherit;
+}
+
+.frame-back svg {
+  width: 24px;
+  height: 24px;
+  transition: transform 150ms ease-out;
+}
+
+.frame-back:hover svg,
+.frame-back:focus-visible svg {
+  transform: translateX(-4px);
+}
+
+.frame-body {
+  padding: 0 var(--header-space) var(--header-space);
+  animation: frame-body-in 300ms ease-out both;
+}
+
+.frame-body h1 {
+  margin-top: 0.5rem;
+  font-size: clamp(2rem, 5vw, 5rem);
+  font-weight: 400;
+  line-height: 1;
+}
+
+.frame-body p {
+  margin-top: 1rem;
+}
+
+/* The transition overlay deliberately animates dimensions to preserve its 1px border. */
+.frame-overlay {
+  position: fixed;
+  z-index: 100;
+  box-sizing: border-box;
+  border: 1px solid var(--ink);
+  background: var(--bg);
+  pointer-events: none;
+  contain: layout paint style;
+}
+
+.page-pad-measurement {
+  position: fixed;
+  width: var(--page-pad);
+  height: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.project-grid.is-transitioning {
+  pointer-events: none;
+}
+
+.project-block > * {
+  transition: opacity var(--reveal-fade, 150ms) ease-out;
+}
+
+.project-block.is-landing > * {
+  opacity: 0;
+}
+
+html.is-returning body::after {
+  position: fixed;
+  z-index: 100;
+  box-sizing: border-box;
+  inset: var(--page-pad);
+  border: 1px solid var(--ink);
+  background: var(--bg);
+  content: "";
+}
+
+@keyframes frame-body-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .name-strip {
+    animation: none;
+  }
+
+  .frame-back svg {
+    transition: none;
+  }
+
+  .frame-back:hover svg,
+  .frame-back:focus-visible svg {
+    transform: none;
+  }
+
+  .frame-body {
+    animation: none;
+  }
+}
+
+@media (max-width: 700px) {
+  :root {
+    --name-width: clamp(130px, 38vw, 200px);
+    --page-pad: var(--header-space-mobile);
+  }
+
+  body {
+    display: block;
+  }
+
+  .site-header {
+    padding: var(--header-space-mobile);
+  }
+
+  nav {
+    gap: 1.25rem;
+  }
+
+  nav a {
+    font-size: 1rem;
+  }
+
+  main {
+    padding: 0 var(--page-pad) var(--page-pad);
+  }
+
+  .project-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: none;
+  }
+
+  .project-block {
+    min-height: 14rem;
+  }
+
+  .frame-header {
+    padding: var(--header-space-mobile);
+  }
+
+  .frame-body {
+    padding: 0 var(--header-space-mobile) var(--header-space-mobile);
+  }
+}
+
+@media (max-width: 359px) {
+  .site-header {
+    flex-wrap: wrap;
+    row-gap: 0.5rem;
+  }
+}
