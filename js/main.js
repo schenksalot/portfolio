@@ -68,6 +68,12 @@ function getPagePadding() {
   return padding;
 }
 
+function getViewportHeight() {
+  return window.visualViewport
+    ? window.visualViewport.height
+    : document.documentElement.clientHeight;
+}
+
 function getInsetFrame(pagePad = getPagePadding()) {
   const viewportWidth = document.documentElement.clientWidth;
   const viewportHeight = document.documentElement.clientHeight;
@@ -265,8 +271,9 @@ function setupCardEdges() {
   const header = document.querySelector(".site-header");
 
   function updateVisibleCardEdges() {
-    const bottomEdge = document.documentElement.clientHeight - pagePad;
+    const bottomEdge = getViewportHeight() - pagePad;
     const pixelRatio = window.devicePixelRatio || 1;
+    const edgeThreshold = 1 / pixelRatio;
     const headerBottom = header
       ? Math.round(header.getBoundingClientRect().bottom * pixelRatio) / pixelRatio
       : 0;
@@ -276,10 +283,11 @@ function setupCardEdges() {
     }));
 
     document.documentElement.style.setProperty("--header-bottom", `${headerBottom}px`);
+    document.documentElement.style.setProperty("--bottom-edge", `${bottomEdge}px`);
 
     cardRects.forEach(({ block, rect }) => {
-      const intersectsBottomEdge = rect.top < bottomEdge && rect.bottom > bottomEdge;
-      const intersectsTopEdge = rect.top < headerBottom && rect.bottom > headerBottom;
+      const intersectsBottomEdge = rect.top < bottomEdge && rect.bottom > bottomEdge + edgeThreshold;
+      const intersectsTopEdge = rect.top < headerBottom - edgeThreshold && rect.bottom > headerBottom;
       const edgeLeft = Math.round(rect.left * pixelRatio) / pixelRatio;
       const edgeWidth = Math.round(rect.width * pixelRatio) / pixelRatio;
 
@@ -311,6 +319,10 @@ function setupCardEdges() {
     pagePad = getPagePadding();
     updateVisibleCardEdges();
   });
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener("resize", updateVisibleCardEdges);
+    window.visualViewport.addEventListener("scroll", updateVisibleCardEdges);
+  }
   updateVisibleCardEdges();
 }
 

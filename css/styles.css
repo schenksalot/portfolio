@@ -8,6 +8,7 @@
   --header-space-mobile: 2.75rem;
   --page-pad: var(--header-space); /* Shared homepage and project-frame edge inset. */
   --header-bottom: 0px;
+  --bottom-edge: calc(100dvh - var(--page-pad));
   --grid-gap: clamp(1rem, 2vw, 1.5rem);
   --block-space: 1.5rem;
   --name-fps: 10; /* Animation frames per second. */
@@ -149,7 +150,7 @@ main {
 .project-block.is-bottom-clipped::after {
   position: fixed;
   z-index: 21;
-  top: calc(100dvh - var(--page-pad) - 1px);
+  top: calc(var(--bottom-edge) - 1px);
   left: var(--bottom-edge-left);
   width: var(--bottom-edge-width);
   height: 1px;
@@ -175,7 +176,7 @@ main {
 body:has(.project-grid)::before {
   position: fixed;
   z-index: 20;
-  top: calc(100dvh - var(--page-pad));
+  top: var(--bottom-edge);
   right: 0;
   bottom: 0;
   left: 0;
@@ -339,12 +340,21 @@ html.is-returning body::after {
   }
 
   .site-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
     padding: var(--header-space-mobile);
-    flex-wrap: wrap;
     row-gap: 0.75rem;
   }
 
+  #site-name,
+  .name-anim {
+    width: 100%;
+    max-width: none;
+  }
+
   nav {
+    width: 100%;
+    justify-content: space-between;
     gap: 1.25rem;
   }
 
@@ -362,7 +372,7 @@ html.is-returning body::after {
   }
 
   .project-block {
-    min-height: 14rem;
+    min-height: 11.9rem;
   }
 
   .frame-header {
@@ -382,11 +392,5 @@ html.is-returning body::after {
   .site-header {
     flex-wrap: wrap;
     row-gap: 0.75rem;
-  }
-}
-
-@media (max-width: 379px) {
-  .site-header {
-    row-gap: 0.5rem;
   }
 }
