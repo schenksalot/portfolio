@@ -249,19 +249,14 @@ function setupCardEdges() {
   let queued = false;
   let mobileEdgesCleared = false;
   let lastHeaderBottom = "";
-  let lastBottomEdge = "";
 
-  function setRootEdge(name, value) {
-    if (value === (name === "--header-bottom" ? lastHeaderBottom : lastBottomEdge)) {
+  function setHeaderBottom(value) {
+    if (value === lastHeaderBottom) {
       return;
     }
 
-    document.documentElement.style.setProperty(name, value);
-    if (name === "--header-bottom") {
-      lastHeaderBottom = value;
-    } else {
-      lastBottomEdge = value;
-    }
+    document.documentElement.style.setProperty("--header-bottom", value);
+    lastHeaderBottom = value;
   }
 
   function clearCardEdges() {
@@ -282,8 +277,7 @@ function setupCardEdges() {
       ? snapToDevicePixel(header.getBoundingClientRect().bottom)
       : 0;
 
-    setRootEdge("--header-bottom", `${headerBottom}px`);
-    setRootEdge("--bottom-edge", `${bottomEdge}px`);
+    setHeaderBottom(`${headerBottom}px`);
 
     if (mobileLayout.matches) {
       if (!mobileEdgesCleared) {
