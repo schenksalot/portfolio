@@ -2,7 +2,6 @@
 :root {
   --bg: #ffffff;
   --ink: #000000;
-  --hover: #f4f4f4;
   --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --page-pad: clamp(1.25rem, 3.5vw, 3.5rem);
   --header-block-pad: clamp(1.25rem, 2.5vw, 2.5rem);
@@ -65,17 +64,6 @@ body {
   row-gap: 0.5rem;
   padding: var(--header-block-pad) var(--page-pad);
   background: var(--bg);
-}
-
-.home-page .site-header::after {
-  position: absolute;
-  right: var(--page-pad);
-  bottom: -1px;
-  left: var(--page-pad);
-  height: 1px;
-  background: var(--ink);
-  content: "";
-  pointer-events: none;
 }
 
 #site-name {
@@ -153,16 +141,47 @@ nav a:focus-visible {
 
 .project-viewport::-webkit-scrollbar { display: none; }
 
+.project-viewport::before,
 .project-viewport::after {
   position: fixed;
   z-index: 11;
   right: var(--page-pad);
-  bottom: var(--page-pad);
   left: var(--page-pad);
   height: 1px;
   background: var(--ink);
   content: "";
   pointer-events: none;
+  opacity: 0;
+}
+
+.project-viewport::before {
+  top: var(--header-bottom);
+}
+
+.project-viewport::after {
+  bottom: var(--page-pad);
+}
+
+.project-viewport.has-top-edge::before,
+.project-viewport.has-bottom-edge::after {
+  opacity: 1;
+}
+
+.project-stretch-side {
+  position: fixed;
+  z-index: 11;
+  width: 1px;
+  background: var(--ink);
+  pointer-events: none;
+  opacity: 0;
+}
+
+.project-block.is-top-stretched {
+  border-top-color: transparent;
+}
+
+.project-block.is-bottom-stretched {
+  border-bottom-color: transparent;
 }
 
 .project-grid {
@@ -185,14 +204,9 @@ nav a:focus-visible {
   -webkit-tap-highlight-color: transparent;
 }
 
-@media (hover: hover) and (pointer: fine) {
-  .project-block:hover {
-    background: var(--hover);
-  }
-}
-
 .project-content {
-  position: static;
+  position: sticky;
+  top: var(--card-pad);
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -316,6 +330,7 @@ html.is-returning body::after {
   .project-block {
     min-height: 11.9rem;
   }
+
 }
 
 @media (max-width: 700px) {

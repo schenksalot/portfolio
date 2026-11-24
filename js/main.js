@@ -232,15 +232,127 @@ function setupProjectViewport() {
     return;
   }
 
+  let queued = false;
+  const createStretchSide = () => {
+    const side = document.createElement("div");
+    side.className = "project-stretch-side";
+    side.setAttribute("aria-hidden", "true");
+    document.body.append(side);
+    return side;
+  };
+  const stretchSides = {
+    top: [createStretchSide(), createStretchSide()],
+    bottom: [createStretchSide(), createStretchSide()],
+  };
+
+  function setStretch(block, className, sides, rect, height, top) {
+    if (height <= 0) {
+      clearStretch(block, className, sides);
+      return;
+    }
+
+    block.classList.add(className);
+    const left = snapToDevicePixel(rect.left);
+    const right = snapToDevicePixel(rect.right - 1);
+    const edgeTop = snapToDevicePixel(top);
+    const edgeHeight = snapToDevicePixel(height);
+    sides.forEach((side, index) => {
+      side.style.left = `${index === 0 ? left : right}px`;
+      side.style.top = `${edgeTop}px`;
+      side.style.height = `${edgeHeight}px`;
+      side.style.opacity = "1";
+    });
+  }
+
+  function clearStretch(block, className, sides) {
+    if (!block.classList.contains(className)) {
+      return;
+    }
+
+    block.classList.remove(className);
+    sides.forEach((side) => {
+      side.style.opacity = "0";
+    });
+  }
+
   function update() {
     const headerBottom = snapToDevicePixel(header.getBoundingClientRect().bottom);
     document.documentElement.style.setProperty("--header-bottom", `${headerBottom}px`);
+    const viewportRect = projectViewport.getBoundingClientRect();
+    const threshold = 1 / (window.devicePixelRatio || 1);
+    let touchesTop = projectViewport.scrollTop <= threshold;
+    let touchesBottom = projectViewport.scrollTop + projectViewport.clientHeight
+      >= projectViewport.scrollHeight - threshold;
+
+    projectLinks.forEach((block) => {
+      const rect = block.getBoundingClientRect();
+      touchesTop ||= rect.top <= viewportRect.top + threshold
+        && rect.bottom >= viewportRect.top - threshold;
+      touchesBottom ||= rect.top <= viewportRect.bottom + threshold
+        && rect.bottom >= viewportRect.bottom - threshold;
+    });
+
+    const firstBlock = projectLinks[0];
+    const lastBlock = projectLinks[projectLinks.length - 1];
+    const firstRect = firstBlock.getBoundingClientRect();
+    const lastRect = lastBlock.getBoundingClientRect();
+    const topStretch = projectViewport.scrollTop <= threshold
+      ? firstRect.top - viewportRect.top
+      : 0;
+    const bottomStretch = projectViewport.scrollTop + projectViewport.clientHeight
+      >= projectViewport.scrollHeight - threshold
+      ? viewportRect.bottom - lastRect.bottom
+      : 0;
+
+    if (topStretch > threshold) {
+      setStretch(
+        firstBlock,
+        "is-top-stretched",
+        stretchSides.top,
+        firstRect,
+        topStretch,
+        viewportRect.top,
+      );
+    } else {
+      clearStretch(firstBlock, "is-top-stretched", stretchSides.top);
+    }
+
+    if (bottomStretch > threshold) {
+      setStretch(
+        lastBlock,
+        "is-bottom-stretched",
+        stretchSides.bottom,
+        lastRect,
+        bottomStretch,
+        viewportRect.bottom - bottomStretch,
+      );
+    } else {
+      clearStretch(lastBlock, "is-bottom-stretched", stretchSides.bottom);
+    }
+
+    projectViewport.classList.toggle("has-top-edge", touchesTop);
+    projectViewport.classList.toggle("has-bottom-edge", touchesBottom);
   }
 
-  refreshProjectViewport = update;
-  window.addEventListener("resize", update);
-  window.addEventListener("orientationchange", update);
-  window.visualViewport?.addEventListener("resize", update);
+  function scheduleUpdate() {
+    if (queued) {
+      return;
+    }
+
+    queued = true;
+    window.requestAnimationFrame(() => {
+      queued = false;
+      update();
+    });
+  }
+
+  refreshProjectViewport = scheduleUpdate;
+  projectViewport.addEventListener("scroll", scheduleUpdate, { passive: true });
+  projectViewport.addEventListener("touchmove", scheduleUpdate, { passive: true });
+  projectViewport.addEventListener("touchend", scheduleUpdate, { passive: true });
+  window.addEventListener("resize", scheduleUpdate);
+  window.addEventListener("orientationchange", scheduleUpdate);
+  window.visualViewport?.addEventListener("resize", scheduleUpdate);
   update();
 }
 
