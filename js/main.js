@@ -12,9 +12,9 @@ const CONFIG = {
 
 const projectLinks = Array.from(document.querySelectorAll(".project-block"));
 const header = document.querySelector(".site-header");
+const projectViewport = document.querySelector(".project-viewport");
 let transitionRunning = false;
-let refreshCardEdges = () => {};
-let lowerViewportMask = null;
+let refreshProjectViewport = () => {};
 
 function clamp(value, minimum, maximum) {
   return Math.min(Math.max(value, minimum), maximum);
@@ -31,12 +31,6 @@ function easeInOutQuart(value) {
     : 1 - ((-2 * value + 2) ** 4) / 2;
 }
 
-function getPagePadding() {
-  return header
-    ? Number.parseFloat(getComputedStyle(header).paddingLeft)
-    : 0;
-}
-
 function getTransitionFrame() {
   const inset = CONFIG.transitionInset;
   return {
@@ -47,18 +41,17 @@ function getTransitionFrame() {
   };
 }
 
-function getVisibleProjectFrame(block, pagePad) {
+function getVisibleProjectFrame(block) {
   const rect = block.getBoundingClientRect();
-  const headerBottom = header ? header.getBoundingClientRect().bottom : 0;
-  const viewportBottom = lowerViewportMask
-    ? lowerViewportMask.getBoundingClientRect().top
-    : document.documentElement.clientHeight - pagePad;
+  const viewportRect = projectViewport
+    ? projectViewport.getBoundingClientRect()
+    : { top: 0, bottom: document.documentElement.clientHeight };
 
   return {
-    top: snapToDevicePixel(Math.max(rect.top, headerBottom)),
+    top: snapToDevicePixel(Math.max(rect.top, viewportRect.top)),
     left: snapToDevicePixel(rect.left),
     right: snapToDevicePixel(rect.right),
-    bottom: snapToDevicePixel(Math.min(rect.bottom, viewportBottom)),
+    bottom: snapToDevicePixel(Math.min(rect.bottom, viewportRect.bottom)),
   };
 }
 
@@ -130,7 +123,8 @@ function removeTransitionArtifacts() {
 
 function saveReturnState(index) {
   try {
-    sessionStorage.setItem("frameReturn", JSON.stringify({ index, scrollY: window.scrollY }));
+    const scrollY = projectViewport ? projectViewport.scrollTop : window.scrollY;
+    sessionStorage.setItem("frameReturn", JSON.stringify({ index, scrollY }));
     return true;
   } catch {
     return false;
@@ -161,7 +155,11 @@ function runReturnTransition(event) {
   }
 
   if (Number.isFinite(Number(returnState.scrollY))) {
-    window.scrollTo(0, Number(returnState.scrollY));
+    if (projectViewport) {
+      projectViewport.scrollTop = Number(returnState.scrollY);
+    } else {
+      window.scrollTo(0, Number(returnState.scrollY));
+    }
   }
 
   const block = projectLinks[returnState.index];
@@ -172,9 +170,8 @@ function runReturnTransition(event) {
   }
 
   transitionRunning = true;
-  const pagePad = getPagePadding();
   const source = getTransitionFrame();
-  const target = getVisibleProjectFrame(block, pagePad);
+  const target = getVisibleProjectFrame(block);
   const overlay = document.querySelector(".frame-overlay") || createOverlay(source);
 
   applyFrame(overlay, { ...source, radius: 0 });
@@ -206,8 +203,7 @@ function setupProjectLinks() {
       event.preventDefault();
       transitionRunning = true;
 
-      const pagePad = getPagePadding();
-      const source = getVisibleProjectFrame(link, pagePad);
+      const source = getVisibleProjectFrame(link);
       const target = getTransitionFrame();
       const overlay = createOverlay(source);
       const grid = link.closest(".project-grid");
@@ -231,110 +227,20 @@ function setupProjectLinks() {
   });
 }
 
-function setupCardEdges() {
-  if (!projectLinks.length) {
+function setupProjectViewport() {
+  if (!projectViewport || !header) {
     return;
   }
 
-  const createEdgeMask = (modifier = "") => {
-    const mask = document.createElement("div");
-    mask.className = `viewport-edge-mask ${modifier}`.trim();
-    mask.setAttribute("aria-hidden", "true");
-    document.body.append(mask);
-    return mask;
-  };
-  createEdgeMask("viewport-edge-mask--top");
-  lowerViewportMask = createEdgeMask();
-  const mobileLayout = window.matchMedia("(max-width: 700px)");
-  let queued = false;
-  let mobileEdgesCleared = false;
-  let lastHeaderBottom = "";
-
-  function setHeaderBottom(value) {
-    if (value === lastHeaderBottom) {
-      return;
-    }
-
-    document.documentElement.style.setProperty("--header-bottom", value);
-    lastHeaderBottom = value;
-  }
-
-  function clearCardEdges() {
-    projectLinks.forEach((block) => {
-      block.classList.remove("is-top-clipped", "is-bottom-clipped");
-      block.style.removeProperty("--edge-left");
-      block.style.removeProperty("--edge-width");
-    });
-  }
-
   function update() {
-    const pagePad = getPagePadding();
-    const viewportBottom = document.documentElement.clientHeight;
-    const bottomEdge = viewportBottom - pagePad;
-    const pixelRatio = window.devicePixelRatio || 1;
-    const threshold = 1 / pixelRatio;
-    const headerBottom = header
-      ? snapToDevicePixel(header.getBoundingClientRect().bottom)
-      : 0;
-
-    setHeaderBottom(`${headerBottom}px`);
-
-    if (mobileLayout.matches) {
-      if (!mobileEdgesCleared) {
-        clearCardEdges();
-        mobileEdgesCleared = true;
-      }
-      return;
-    }
-
-    mobileEdgesCleared = false;
-
-    projectLinks.forEach((block) => {
-      const rect = block.getBoundingClientRect();
-      const intersectsTop = rect.top < headerBottom - threshold && rect.bottom > headerBottom;
-      const intersectsBottom = rect.top < bottomEdge && rect.bottom > bottomEdge + threshold;
-      const hasClippedEdge = intersectsTop || intersectsBottom;
-
-      block.classList.toggle("is-top-clipped", intersectsTop);
-      block.classList.toggle("is-bottom-clipped", intersectsBottom);
-
-      if (hasClippedEdge) {
-        block.style.setProperty("--edge-left", `${snapToDevicePixel(rect.left)}px`);
-        block.style.setProperty("--edge-width", `${snapToDevicePixel(rect.width)}px`);
-      } else {
-        block.style.removeProperty("--edge-left");
-        block.style.removeProperty("--edge-width");
-      }
-    });
+    const headerBottom = snapToDevicePixel(header.getBoundingClientRect().bottom);
+    document.documentElement.style.setProperty("--header-bottom", `${headerBottom}px`);
   }
 
-  function scheduleUpdate() {
-    if (queued) {
-      return;
-    }
-
-    queued = true;
-    window.requestAnimationFrame(() => {
-      queued = false;
-      update();
-    });
-  }
-
-  refreshCardEdges = scheduleUpdate;
-  window.addEventListener("scroll", () => {
-    if (!mobileLayout.matches) {
-      scheduleUpdate();
-    }
-  }, { passive: true });
-  window.addEventListener("resize", scheduleUpdate);
-  window.addEventListener("orientationchange", scheduleUpdate);
-  mobileLayout.addEventListener("change", scheduleUpdate);
-  window.visualViewport?.addEventListener("resize", scheduleUpdate);
-  window.visualViewport?.addEventListener("scroll", () => {
-    if (!mobileLayout.matches) {
-      scheduleUpdate();
-    }
-  });
+  refreshProjectViewport = update;
+  window.addEventListener("resize", update);
+  window.addEventListener("orientationchange", update);
+  window.visualViewport?.addEventListener("resize", update);
   update();
 }
 
@@ -342,7 +248,7 @@ function initialize() {
   document.documentElement.style.setProperty("--reveal-fade", `${CONFIG.revealDuration}ms`);
   document.documentElement.style.setProperty("--transition-inset", `${CONFIG.transitionInset}px`);
   setupProjectLinks();
-  setupCardEdges();
+  setupProjectViewport();
   runReturnTransition();
 }
 
@@ -355,7 +261,7 @@ if (document.readyState === "loading") {
 window.addEventListener("pageshow", (event) => {
   if (event.persisted) {
     transitionRunning = false;
-    refreshCardEdges();
+    refreshProjectViewport();
   }
   runReturnTransition(event);
 });
