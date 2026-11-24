@@ -320,6 +320,13 @@ html.is-returning body::after {
     display: block;
   }
 
+  .project-content {
+    position: relative;
+    top: auto;
+    transform: translateY(var(--content-shift, 0px));
+    will-change: transform;
+  }
+
   .site-header::after {
     position: absolute;
     right: var(--page-pad);
