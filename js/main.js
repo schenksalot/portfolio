@@ -315,11 +315,20 @@ function setupCardEdges() {
   }
 
   refreshCardEdges = scheduleUpdate;
-  window.addEventListener("scroll", scheduleUpdate, { passive: true });
+  window.addEventListener("scroll", () => {
+    if (!mobileLayout.matches) {
+      scheduleUpdate();
+    }
+  }, { passive: true });
   window.addEventListener("resize", scheduleUpdate);
   window.addEventListener("orientationchange", scheduleUpdate);
+  mobileLayout.addEventListener("change", scheduleUpdate);
   window.visualViewport?.addEventListener("resize", scheduleUpdate);
-  window.visualViewport?.addEventListener("scroll", scheduleUpdate);
+  window.visualViewport?.addEventListener("scroll", () => {
+    if (!mobileLayout.matches) {
+      scheduleUpdate();
+    }
+  });
   update();
 }
 
