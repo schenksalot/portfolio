@@ -215,7 +215,7 @@ main {
 /* Fixed destination frame used by each project page. */
 .project-frame {
   position: fixed;
-  inset: var(--page-pad);
+  inset: var(--transition-inset, 12px);
   overflow-y: auto;
   overscroll-behavior: none;
   border: 1px solid var(--ink);
@@ -286,7 +286,7 @@ main {
 html.is-returning body::after {
   position: fixed;
   z-index: 100;
-  inset: var(--page-pad);
+  inset: var(--transition-inset, 12px);
   border: 1px solid var(--ink);
   background: var(--bg);
   content: "";
@@ -312,6 +312,10 @@ html.is-returning body::after {
   .project-grid {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: none;
+  }
+
+  .project-block {
+    min-height: 11.9rem;
   }
 }
 
@@ -354,9 +358,6 @@ html.is-returning body::after {
     content: "";
   }
 
-  .project-block {
-    min-height: 11.9rem;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {

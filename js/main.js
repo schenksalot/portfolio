@@ -6,6 +6,8 @@ const CONFIG = {
   edgeStagger: { top: 0, left: 0.04, bottom: 0.08, right: 0.12 },
   // Keep transition corners square; raise this only to introduce a rounded flight path.
   cornerPeak: 0,
+  // Slim perimeter left around the fully expanded transition frame, in pixels.
+  transitionInset: 12,
 };
 
 const projectLinks = Array.from(document.querySelectorAll(".project-block"));
@@ -34,12 +36,13 @@ function getPagePadding() {
     : 0;
 }
 
-function getViewportFrame(pagePad = getPagePadding()) {
+function getTransitionFrame() {
+  const inset = CONFIG.transitionInset;
   return {
-    top: pagePad,
-    left: pagePad,
-    right: document.documentElement.clientWidth - pagePad,
-    bottom: document.documentElement.clientHeight - pagePad,
+    top: inset,
+    left: inset,
+    right: document.documentElement.clientWidth - inset,
+    bottom: document.documentElement.clientHeight - inset,
   };
 }
 
@@ -167,7 +170,7 @@ function runReturnTransition(event) {
 
   transitionRunning = true;
   const pagePad = getPagePadding();
-  const source = getViewportFrame(pagePad);
+  const source = getTransitionFrame();
   const target = getVisibleProjectFrame(block, pagePad);
   const overlay = document.querySelector(".frame-overlay") || createOverlay(source);
 
@@ -201,7 +204,7 @@ function setupProjectLinks() {
 
       const pagePad = getPagePadding();
       const source = getVisibleProjectFrame(link, pagePad);
-      const target = getViewportFrame(pagePad);
+      const target = getTransitionFrame();
       const overlay = createOverlay(source);
       const grid = link.closest(".project-grid");
       grid?.classList.add("is-transitioning");
@@ -214,7 +217,7 @@ function setupProjectLinks() {
 
         navigated = true;
         window.clearTimeout(safetyTimeout);
-        overlay.style.cssText = "inset: var(--page-pad); border-radius: 0;";
+        overlay.style.cssText = `inset: ${CONFIG.transitionInset}px; border-radius: 0;`;
         window.location.href = link.href;
       };
       const safetyTimeout = window.setTimeout(navigate, CONFIG.transitionDuration + 400);
@@ -338,6 +341,7 @@ function setupCardEdges() {
 
 function initialize() {
   document.documentElement.style.setProperty("--reveal-fade", `${CONFIG.revealDuration}ms`);
+  document.documentElement.style.setProperty("--transition-inset", `${CONFIG.transitionInset}px`);
   setupProjectLinks();
   setupCardEdges();
   runReturnTransition();
