@@ -321,10 +321,8 @@ html.is-returning body::after {
   }
 
   .project-content {
-    position: relative;
+    position: static;
     top: auto;
-    transform: translateY(var(--content-shift, 0px));
-    will-change: transform;
   }
 
   .site-header::after {

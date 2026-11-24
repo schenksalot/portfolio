@@ -238,14 +238,8 @@ function setupCardEdges() {
   createEdgeMask("viewport-edge-mask--top");
   createEdgeMask();
   const mobileLayout = window.matchMedia("(max-width: 700px)");
-  const mobileContent = projectLinks.map((block) => ({
-    block,
-    content: block.querySelector(".project-content"),
-    shift: null,
-  }));
   let queued = false;
   let mobileEdgesCleared = false;
-  let mobileContentActive = false;
   let lastHeaderBottom = "";
   let lastBottomEdge = "";
 
@@ -270,34 +264,6 @@ function setupCardEdges() {
     });
   }
 
-  function updateMobileContent(headerBottom) {
-    mobileContent.forEach((item) => {
-      if (!item.content) {
-        return;
-      }
-
-      const rect = item.block.getBoundingClientRect();
-      const inset = item.content.offsetTop;
-      const maxShift = Math.max(
-        0,
-        item.block.clientHeight - item.content.offsetHeight - (inset * 2),
-      );
-      const shift = snapToDevicePixel(clamp(headerBottom - rect.top, 0, maxShift));
-
-      if (shift !== item.shift) {
-        item.content.style.setProperty("--content-shift", `${shift}px`);
-        item.shift = shift;
-      }
-    });
-  }
-
-  function clearMobileContent() {
-    mobileContent.forEach((item) => {
-      item.content?.style.removeProperty("--content-shift");
-      item.shift = null;
-    });
-  }
-
   function update() {
     const pagePad = getPagePadding();
     const viewportBottom = document.documentElement.clientHeight;
@@ -316,16 +282,10 @@ function setupCardEdges() {
         clearCardEdges();
         mobileEdgesCleared = true;
       }
-      updateMobileContent(headerBottom);
-      mobileContentActive = true;
       return;
     }
 
     mobileEdgesCleared = false;
-    if (mobileContentActive) {
-      clearMobileContent();
-      mobileContentActive = false;
-    }
 
     projectLinks.forEach((block) => {
       const rect = block.getBoundingClientRect();
@@ -359,12 +319,20 @@ function setupCardEdges() {
   }
 
   refreshCardEdges = scheduleUpdate;
-  window.addEventListener("scroll", scheduleUpdate, { passive: true });
+  window.addEventListener("scroll", () => {
+    if (!mobileLayout.matches) {
+      scheduleUpdate();
+    }
+  }, { passive: true });
   window.addEventListener("resize", scheduleUpdate);
   window.addEventListener("orientationchange", scheduleUpdate);
   mobileLayout.addEventListener("change", scheduleUpdate);
   window.visualViewport?.addEventListener("resize", scheduleUpdate);
-  window.visualViewport?.addEventListener("scroll", scheduleUpdate);
+  window.visualViewport?.addEventListener("scroll", () => {
+    if (!mobileLayout.matches) {
+      scheduleUpdate();
+    }
+  });
   update();
 }
 
