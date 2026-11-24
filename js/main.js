@@ -229,7 +229,10 @@ function setupCardEdges() {
     return;
   }
 
-  document.body.classList.add("project-edges-active");
+  const lowerMask = document.createElement("div");
+  lowerMask.className = "viewport-edge-mask";
+  lowerMask.setAttribute("aria-hidden", "true");
+  document.body.append(lowerMask);
   let queued = false;
 
   function update() {
@@ -247,11 +250,14 @@ function setupCardEdges() {
 
     projectLinks.forEach((block) => {
       const rect = block.getBoundingClientRect();
+      const intersectsTop = rect.top < headerBottom - threshold && rect.bottom > headerBottom;
       const intersectsBottom = rect.top < bottomEdge && rect.bottom > bottomEdge + threshold;
+      const hasClippedEdge = intersectsTop || intersectsBottom;
 
+      block.classList.toggle("is-top-clipped", intersectsTop);
       block.classList.toggle("is-bottom-clipped", intersectsBottom);
 
-      if (intersectsBottom) {
+      if (hasClippedEdge) {
         block.style.setProperty("--edge-left", `${snapToDevicePixel(rect.left)}px`);
         block.style.setProperty("--edge-width", `${snapToDevicePixel(rect.width)}px`);
       } else {

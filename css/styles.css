@@ -171,11 +171,10 @@ main {
   line-height: 1.15;
 }
 
-/* Replaces a card's lower edge when it is clipped by the viewport mask. */
-.project-block.is-bottom-clipped::after {
+/* Replaces card edges when they are clipped by the persistent viewport boundaries. */
+.project-block.is-bottom-clipped::after,
+.project-block.is-top-clipped::before {
   position: fixed;
-  z-index: 21;
-  top: calc(var(--bottom-edge) - 1px);
   width: var(--edge-width);
   height: 1px;
   left: var(--edge-left);
@@ -184,22 +183,18 @@ main {
   pointer-events: none;
 }
 
-/* Masks project content above the sticky header's lower edge. */
-body.project-edges-active main::before {
-  position: fixed;
-  z-index: 9;
-  top: 0;
-  right: 0;
-  left: 0;
-  height: calc(var(--header-bottom) + 1px);
-  border-bottom: 1px solid var(--ink);
-  background: var(--bg);
-  content: "";
-  pointer-events: none;
+.project-block.is-bottom-clipped::after {
+  z-index: 21;
+  top: calc(var(--bottom-edge) - 1px);
 }
 
-/* The lower mask is activated directly by script for reliable mobile support. */
-body.project-edges-active::before {
+.project-block.is-top-clipped::before {
+  z-index: 9;
+  top: var(--header-bottom);
+}
+
+/* A real fixed element is more reliable than a body pseudo-element in mobile Safari. */
+.viewport-edge-mask {
   position: fixed;
   z-index: 20;
   top: var(--bottom-edge);
@@ -207,7 +202,6 @@ body.project-edges-active::before {
   bottom: 0;
   left: 0;
   background: var(--bg);
-  content: "";
   pointer-events: none;
 }
 
@@ -317,6 +311,21 @@ html.is-returning body::after {
 @media (max-width: 700px) {
   body {
     display: block;
+  }
+
+  .site-header::after {
+    position: absolute;
+    right: var(--page-pad);
+    bottom: 0;
+    left: var(--page-pad);
+    height: 1px;
+    background: var(--ink);
+    content: "";
+    pointer-events: none;
+  }
+
+  .project-block.is-top-clipped::before {
+    display: none;
   }
 
   .project-block {
