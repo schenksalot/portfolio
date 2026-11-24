@@ -14,6 +14,7 @@ const projectLinks = Array.from(document.querySelectorAll(".project-block"));
 const header = document.querySelector(".site-header");
 let transitionRunning = false;
 let refreshCardEdges = () => {};
+let lowerViewportMask = null;
 
 function clamp(value, minimum, maximum) {
   return Math.min(Math.max(value, minimum), maximum);
@@ -49,7 +50,9 @@ function getTransitionFrame() {
 function getVisibleProjectFrame(block, pagePad) {
   const rect = block.getBoundingClientRect();
   const headerBottom = header ? header.getBoundingClientRect().bottom : 0;
-  const viewportBottom = document.documentElement.clientHeight - pagePad;
+  const viewportBottom = lowerViewportMask
+    ? lowerViewportMask.getBoundingClientRect().top
+    : document.documentElement.clientHeight - pagePad;
 
   return {
     top: snapToDevicePixel(Math.max(rect.top, headerBottom)),
@@ -237,9 +240,10 @@ function setupCardEdges() {
     mask.className = `viewport-edge-mask ${modifier}`.trim();
     mask.setAttribute("aria-hidden", "true");
     document.body.append(mask);
+    return mask;
   };
   createEdgeMask("viewport-edge-mask--top");
-  createEdgeMask();
+  lowerViewportMask = createEdgeMask();
   const mobileLayout = window.matchMedia("(max-width: 700px)");
   let queued = false;
   let mobileEdgesCleared = false;
