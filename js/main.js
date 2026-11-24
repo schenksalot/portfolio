@@ -229,10 +229,14 @@ function setupCardEdges() {
     return;
   }
 
-  const lowerMask = document.createElement("div");
-  lowerMask.className = "viewport-edge-mask";
-  lowerMask.setAttribute("aria-hidden", "true");
-  document.body.append(lowerMask);
+  const createEdgeMask = (modifier = "") => {
+    const mask = document.createElement("div");
+    mask.className = `viewport-edge-mask ${modifier}`.trim();
+    mask.setAttribute("aria-hidden", "true");
+    document.body.append(mask);
+  };
+  createEdgeMask("viewport-edge-mask--top");
+  createEdgeMask();
   const mobileLayout = window.matchMedia("(max-width: 700px)");
   let queued = false;
   let mobileEdgesCleared = false;

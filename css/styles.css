@@ -205,6 +205,13 @@ main {
   pointer-events: none;
 }
 
+.viewport-edge-mask--top {
+  z-index: 9;
+  top: 0;
+  bottom: auto;
+  height: var(--header-bottom);
+}
+
 /* Fixed destination frame used by each project page. */
 .project-frame {
   position: fixed;
@@ -332,7 +339,7 @@ html.is-returning body::after {
     display: none;
   }
 
-  .viewport-edge-mask::before {
+  .viewport-edge-mask:not(.viewport-edge-mask--top)::before {
     position: absolute;
     right: var(--page-pad);
     top: -1px;
