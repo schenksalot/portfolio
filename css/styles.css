@@ -146,8 +146,10 @@ main {
   text-decoration: none;
 }
 
-.project-block:hover {
-  background: var(--hover);
+@media (hover: hover) and (pointer: fine) {
+  .project-block:hover {
+    background: var(--hover);
+  }
 }
 
 .project-content {
