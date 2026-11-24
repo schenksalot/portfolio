@@ -247,14 +247,11 @@ function setupCardEdges() {
 
     projectLinks.forEach((block) => {
       const rect = block.getBoundingClientRect();
-      const intersectsTop = rect.top < headerBottom - threshold && rect.bottom > headerBottom;
       const intersectsBottom = rect.top < bottomEdge && rect.bottom > bottomEdge + threshold;
-      const hasClippedEdge = intersectsTop || intersectsBottom;
 
-      block.classList.toggle("is-top-clipped", intersectsTop);
       block.classList.toggle("is-bottom-clipped", intersectsBottom);
 
-      if (hasClippedEdge) {
+      if (intersectsBottom) {
         block.style.setProperty("--edge-left", `${snapToDevicePixel(rect.left)}px`);
         block.style.setProperty("--edge-width", `${snapToDevicePixel(rect.width)}px`);
       } else {
@@ -284,71 +281,6 @@ function setupCardEdges() {
   window.visualViewport?.addEventListener("scroll", scheduleUpdate);
   update();
 }
-
-/* TEMP DEBUG: delete after use. */
-(() => {
-  if (new URLSearchParams(window.location.search).get("debug") !== "viewport") {
-    return;
-  }
-
-  const createElement = (tagName, className, text = "") => {
-    const element = document.createElement(tagName);
-    element.className = className;
-    element.textContent = text;
-    element.setAttribute("aria-hidden", "true");
-    document.body.append(element);
-    return element;
-  };
-
-  document.body.classList.add("debug-viewport");
-
-  const readout = createElement("pre", "debug-viewport-readout");
-  const lines = [
-    ["red", "RED bottom: 0"],
-    ["blue", "BLUE 100svh"],
-    ["green", "GREEN 100lvh"],
-    ["orange", "ORANGE bottom: --page-pad"],
-  ].map(([color, label]) => {
-    const line = createElement("div", `debug-viewport-line debug-viewport-line--${color}`);
-    const lineLabel = document.createElement("span");
-    lineLabel.textContent = label;
-    line.append(lineLabel);
-    return line;
-  });
-  const measures = ["svh", "dvh", "lvh"].map((unit) => (
-    createElement("div", `debug-viewport-measure debug-viewport-measure--${unit}`)
-  ));
-  const maskProbe = createElement("div", "debug-viewport-probe");
-
-  function updateDebugReadout() {
-    const visualViewport = window.visualViewport;
-    const pagePad = getPagePadding();
-    const maskTop = maskProbe.getBoundingClientRect().top;
-    const redBottom = lines[0].getBoundingClientRect().bottom;
-
-    readout.textContent = [
-      `innerHeight: ${window.innerHeight}`,
-      `clientHeight: ${document.documentElement.clientHeight}`,
-      `visualViewport.height: ${visualViewport ? visualViewport.height.toFixed(1) : "n/a"}`,
-      `visualViewport.offsetTop: ${visualViewport ? visualViewport.offsetTop.toFixed(1) : "n/a"}`,
-      `screen.height: ${window.screen.height}`,
-      `100svh: ${measures[0].getBoundingClientRect().height.toFixed(1)}`,
-      `100dvh: ${measures[1].getBoundingClientRect().height.toFixed(1)}`,
-      `100lvh: ${measures[2].getBoundingClientRect().height.toFixed(1)}`,
-      `--page-pad: ${pagePad.toFixed(1)}`,
-      `scrollY: ${window.scrollY.toFixed(1)}`,
-      `mask top / hide boundary: ${maskTop.toFixed(1)}`,
-      `mask bottom / red line: ${redBottom.toFixed(1)}`,
-    ].join("\n");
-  }
-
-  window.addEventListener("scroll", updateDebugReadout, { passive: true });
-  window.addEventListener("resize", updateDebugReadout);
-  window.visualViewport?.addEventListener("resize", updateDebugReadout);
-  window.visualViewport?.addEventListener("scroll", updateDebugReadout);
-  updateDebugReadout();
-  window.requestAnimationFrame(updateDebugReadout);
-})();
 
 function initialize() {
   document.documentElement.style.setProperty("--reveal-fade", `${CONFIG.revealDuration}ms`);

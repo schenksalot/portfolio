@@ -14,7 +14,6 @@
   --name-steps: 8; /* Ping-pong order: 1,2,3,4,5,4,3,2. */
   --name-width: min(100%, clamp(260px, calc(13vw + 31.5rem), 800px));
 }
-
 *,
 *::before,
 *::after {
@@ -172,10 +171,11 @@ main {
   line-height: 1.15;
 }
 
-/* Replaces a card edge when it is clipped by the persistent viewport boundaries. */
-.project-block.is-bottom-clipped::after,
-.project-block.is-top-clipped::before {
+/* Replaces a card's lower edge when it is clipped by the viewport mask. */
+.project-block.is-bottom-clipped::after {
   position: fixed;
+  z-index: 21;
+  top: calc(var(--bottom-edge) - 1px);
   width: var(--edge-width);
   height: 1px;
   left: var(--edge-left);
@@ -184,14 +184,18 @@ main {
   pointer-events: none;
 }
 
-.project-block.is-bottom-clipped::after {
-  z-index: 21;
-  top: calc(var(--bottom-edge) - 1px);
-}
-
-.project-block.is-top-clipped::before {
+/* Masks project content above the sticky header's lower edge. */
+body.project-edges-active main::before {
+  position: fixed;
   z-index: 9;
-  top: var(--header-bottom);
+  top: 0;
+  right: 0;
+  left: 0;
+  height: calc(var(--header-bottom) + 1px);
+  border-bottom: 1px solid var(--ink);
+  background: var(--bg);
+  content: "";
+  pointer-events: none;
 }
 
 /* The lower mask is activated directly by script for reliable mobile support. */
@@ -315,21 +319,6 @@ html.is-returning body::after {
     display: block;
   }
 
-  .site-header::after {
-    position: absolute;
-    right: var(--page-pad);
-    bottom: 0;
-    left: var(--page-pad);
-    height: 1px;
-    background: var(--ink);
-    content: "";
-    pointer-events: none;
-  }
-
-  .project-block.is-top-clipped::before {
-    display: none;
-  }
-
   .project-block {
     min-height: 11.9rem;
   }
@@ -358,81 +347,3 @@ html.is-returning body::after {
     transform: none;
   }
 }
-
-/* TEMP DEBUG: delete after use. Active only when js/main.js adds .debug-viewport. */
-body.debug-viewport.project-edges-active::before {
-  outline: 2px dashed #ff00ff;
-  outline-offset: -2px;
-}
-
-.debug-viewport-line,
-.debug-viewport-readout,
-.debug-viewport-measure,
-.debug-viewport-probe {
-  position: fixed;
-  pointer-events: none;
-}
-
-.debug-viewport-line {
-  z-index: 99999;
-  right: 0;
-  left: 0;
-  height: 2px;
-}
-
-.debug-viewport-line span {
-  display: block;
-  width: fit-content;
-  padding: 1px 3px;
-  color: #000000;
-  background: #ffffff;
-  font: 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
-}
-
-.debug-viewport-line--red {
-  bottom: 0;
-  background: #ff0000;
-}
-
-.debug-viewport-line--blue {
-  top: 100svh;
-  background: #0000ff;
-  transform: translateY(-2px);
-}
-
-.debug-viewport-line--green {
-  top: 100lvh;
-  background: #00aa00;
-  transform: translateY(-2px);
-}
-
-.debug-viewport-line--orange {
-  bottom: var(--page-pad);
-  background: #ff8800;
-}
-
-.debug-viewport-readout {
-  z-index: 99999;
-  top: 4px;
-  left: 4px;
-  max-width: calc(100vw - 8px);
-  padding: 5px;
-  border: 1px solid #000000;
-  color: #000000;
-  background: #ffffff;
-  font: 11px/1.35 ui-monospace, SFMono-Regular, Menlo, monospace;
-  white-space: pre-wrap;
-}
-
-.debug-viewport-measure,
-.debug-viewport-probe {
-  top: 0;
-  left: 0;
-  width: 0;
-  visibility: hidden;
-}
-
-.debug-viewport-measure--svh { height: 100svh; }
-.debug-viewport-measure--dvh { height: 100dvh; }
-.debug-viewport-measure--lvh { height: 100lvh; }
-.debug-viewport-probe { top: var(--bottom-edge); }
