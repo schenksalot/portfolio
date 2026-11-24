@@ -1,379 +1,302 @@
-const CONFIG = {
-  // Project-frame travel and returning-content reveal timing in milliseconds.
-  transitionDuration: 500,
-  revealDuration: 150,
-  // Each frame edge trails the first edge by this fraction of the transition.
-  edgeStagger: { top: 0, left: 0.04, bottom: 0.08, right: 0.12 },
-  // Keep transition corners square; raise this only to introduce a rounded flight path.
-  cornerPeak: 0,
-  // Slim perimeter left around the fully expanded transition frame, in pixels.
-  transitionInset: 12,
-};
+(() => {
+  "use strict";
 
-const projectLinks = Array.from(document.querySelectorAll(".project-block"));
-const header = document.querySelector(".site-header");
-const projectViewport = document.querySelector(".project-viewport");
-let transitionRunning = false;
-let refreshProjectViewport = () => {};
-
-function clamp(value, minimum, maximum) {
-  return Math.min(Math.max(value, minimum), maximum);
-}
-
-function snapToDevicePixel(value) {
-  const ratio = window.devicePixelRatio || 1;
-  return Math.round(value * ratio) / ratio;
-}
-
-function easeInOutQuart(value) {
-  return value < 0.5
-    ? 8 * value ** 4
-    : 1 - ((-2 * value + 2) ** 4) / 2;
-}
-
-function getTransitionFrame() {
-  const inset = CONFIG.transitionInset;
-  return {
-    top: inset,
-    left: inset,
-    right: document.documentElement.clientWidth - inset,
-    bottom: document.documentElement.clientHeight - inset,
+  /* CONFIG: shared timing values for the project-frame transition. */
+  const CONFIG = {
+    duration: 500,
+    easing: "cubic-bezier(0.65, 0, 0.35, 1)",
+    touchFadeIn: 120,
+    revealFade: 150,
   };
-}
 
-function getVisibleProjectFrame(block) {
-  const rect = block.getBoundingClientRect();
-  const viewportRect = projectViewport
-    ? projectViewport.getBoundingClientRect()
-    : { top: 0, bottom: document.documentElement.clientHeight };
-
-  return {
-    top: snapToDevicePixel(Math.max(rect.top, viewportRect.top)),
-    left: snapToDevicePixel(rect.left),
-    right: snapToDevicePixel(rect.right),
-    bottom: snapToDevicePixel(Math.min(rect.bottom, viewportRect.bottom)),
+  /* constants for selectors, class names, and session storage. */
+  const SELECTORS = {
+    header: ".site-header",
+    grid: ".project-grid",
+    projectBlock: ".project-block",
+    projectViewport: ".project-viewport",
+    overlay: ".frame-overlay",
   };
-}
-
-function applyFrame(overlay, frame) {
-  overlay.style.top = `${frame.top}px`;
-  overlay.style.left = `${frame.left}px`;
-  overlay.style.width = `${frame.right - frame.left}px`;
-  overlay.style.height = `${frame.bottom - frame.top}px`;
-  overlay.style.borderRadius = `${frame.radius}px`;
-}
-
-function frameAt(progress, start, end) {
-  const maxLag = Math.max(...Object.values(CONFIG.edgeStagger));
-  const edges = {};
-
-  Object.entries(CONFIG.edgeStagger).forEach(([edge, delay]) => {
-    const localProgress = clamp((progress - delay) / (1 - maxLag), 0, 1);
-    edges[edge] = snapToDevicePixel(
-      start[edge] + (end[edge] - start[edge]) * easeInOutQuart(localProgress),
-    );
-  });
-
-  return {
-    ...edges,
-    radius: progress === 0 || progress === 1
-      ? 0
-      : CONFIG.cornerPeak * Math.sin(Math.PI * progress),
+  const CLASSES = {
+    landing: "is-landing",
+    returning: "is-returning",
   };
-}
+  const STORAGE_KEY = "frameReturn";
+  const root = document.documentElement;
+  const reducedMotionQuery = window.matchMedia
+    ? window.matchMedia("(prefers-reduced-motion: reduce)")
+    : { matches: false };
+  let transitionRunning = false;
 
-function createOverlay(frame) {
-  const overlay = document.createElement("div");
-  overlay.className = "frame-overlay";
-  overlay.setAttribute("aria-hidden", "true");
-  applyFrame(overlay, { ...frame, radius: 0 });
-  document.body.append(overlay);
-  return overlay;
-}
+  // Returns whether the visitor has asked for reduced motion.
+  function prefersReducedMotion() {
+    return reducedMotionQuery.matches;
+  }
 
-function animateFrame(overlay, start, end, reverse, onComplete) {
-  const startedAt = performance.now();
+  // Reads the project-owned color resolved by CSS.
+  function getProjectColor(element) {
+    return getComputedStyle(element).getPropertyValue("--c").trim();
+  }
 
-  function step(now) {
-    const elapsed = clamp((now - startedAt) / CONFIG.transitionDuration, 0, 1);
-    applyFrame(overlay, frameAt(reverse ? 1 - elapsed : elapsed, start, end));
+  // Finds the homepage project blocks only when they exist.
+  function getProjectBlocks() {
+    return Array.from(document.querySelectorAll(SELECTORS.projectBlock));
+  }
 
-    if (elapsed < 1) {
-      window.requestAnimationFrame(step);
+  // Creates the fixed inset overlay with the project's CSS color.
+  function createOverlay(color) {
+    const overlay = document.createElement("div");
+    overlay.className = SELECTORS.overlay.slice(1);
+    overlay.setAttribute("aria-hidden", "true");
+    overlay.style.setProperty("--overlay-c", color);
+    document.body.append(overlay);
+    return overlay;
+  }
+
+  // Removes transition elements and temporary landing state.
+  function cleanTransition() {
+    document.querySelectorAll(SELECTORS.overlay).forEach((overlay) => overlay.remove());
+    document.querySelectorAll("." + CLASSES.landing).forEach((block) => {
+      block.classList.remove(CLASSES.landing);
+    });
+    document.querySelectorAll(SELECTORS.grid).forEach((grid) => {
+      grid.removeAttribute("aria-busy");
+    });
+    root.classList.remove(CLASSES.returning);
+    delete root.dataset.returning;
+    transitionRunning = false;
+  }
+
+  // Reads the homepage's current project-list scroll position.
+  function getHomeScrollPosition() {
+    return document.querySelector(SELECTORS.projectViewport)?.scrollTop || 0;
+  }
+
+  // Restores the homepage project-list scroll position before measuring a tile.
+  function restoreHomeScrollPosition(scrollTop) {
+    const viewport = document.querySelector(SELECTORS.projectViewport);
+    const position = Number(scrollTop);
+    if (!viewport || !Number.isFinite(position)) {
       return;
     }
-
-    onComplete();
+    viewport.scrollTop = position;
   }
 
-  window.requestAnimationFrame(step);
-}
-
-function removeTransitionArtifacts() {
-  document.querySelectorAll(".frame-overlay").forEach((overlay) => overlay.remove());
-  document.querySelectorAll(".project-grid.is-transitioning").forEach((grid) => {
-    grid.classList.remove("is-transitioning");
-  });
-  document.querySelectorAll(".project-block.is-landing").forEach((block) => {
-    block.classList.remove("is-landing");
-  });
-  document.documentElement.classList.remove("is-returning");
-  transitionRunning = false;
-}
-
-function saveReturnState(index) {
-  try {
-    const scrollY = projectViewport ? projectViewport.scrollTop : window.scrollY;
-    sessionStorage.setItem("frameReturn", JSON.stringify({ index, scrollY }));
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-function consumeReturnState() {
-  try {
-    const stored = sessionStorage.getItem("frameReturn");
-    sessionStorage.removeItem("frameReturn");
-    return stored ? JSON.parse(stored) : null;
-  } catch {
-    return null;
-  }
-}
-
-function runReturnTransition(event) {
-  if (!projectLinks.length) {
-    return;
-  }
-
-  const returnState = consumeReturnState();
-  if (!returnState) {
-    if (event?.persisted) {
-      removeTransitionArtifacts();
-    }
-    return;
-  }
-
-  if (Number.isFinite(Number(returnState.scrollY))) {
-    if (projectViewport) {
-      projectViewport.scrollTop = Number(returnState.scrollY);
-    } else {
-      window.scrollTo(0, Number(returnState.scrollY));
+  // Stores the selected project and homepage position for the return transition.
+  function saveReturnState(index, project) {
+    try {
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify({
+        index,
+        project,
+        scrollTop: getHomeScrollPosition(),
+      }));
+      return true;
+    } catch {
+      return false;
     }
   }
 
-  const block = projectLinks[returnState.index];
-  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  if (reducedMotion || !block || transitionRunning) {
-    removeTransitionArtifacts();
-    return;
+  // Takes and clears the saved project state once.
+  function takeReturnState() {
+    try {
+      const value = sessionStorage.getItem(STORAGE_KEY);
+      sessionStorage.removeItem(STORAGE_KEY);
+      return value ? JSON.parse(value) : null;
+    } catch {
+      return null;
+    }
   }
 
-  transitionRunning = true;
-  const source = getTransitionFrame();
-  const target = getVisibleProjectFrame(block);
-  const overlay = document.querySelector(".frame-overlay") || createOverlay(source);
+  // Produces the transform that maps the inset overlay to a project block.
+  function getBlockTransform(block, overlay) {
+    const blockRect = block.getBoundingClientRect();
+    const frameRect = overlay.getBoundingClientRect();
+    const x = blockRect.left - frameRect.left;
+    const y = blockRect.top - frameRect.top;
+    const scaleX = blockRect.width / frameRect.width;
+    const scaleY = blockRect.height / frameRect.height;
+    return "translate(" + x + "px, " + y + "px) scale(" + scaleX + ", " + scaleY + ")";
+  }
 
-  applyFrame(overlay, { ...source, radius: 0 });
-  document.documentElement.classList.remove("is-returning");
-  block.classList.add("is-landing");
+  // Resolves once an animation finishes without surfacing cancellation errors.
+  function finish(animation) {
+    return animation.finished.catch(() => undefined);
+  }
 
-  animateFrame(overlay, target, source, true, () => {
-    overlay.remove();
-    block.closest(".project-grid")?.classList.remove("is-transitioning");
-    transitionRunning = false;
-    window.requestAnimationFrame(() => block.classList.remove("is-landing"));
-  });
-}
+  // Starts the forward transition and navigates exactly once.
+  function runOpenTransition(link, index) {
+    const grid = link.closest(SELECTORS.grid);
+    const color = getProjectColor(link);
+    const overlay = createOverlay(color);
+    const from = getBlockTransform(link, overlay);
+    const isTouch = !window.matchMedia("(hover: hover)").matches;
+    let navigated = false;
+    let safetyTimer;
 
-function setupProjectLinks() {
-  projectLinks.forEach((link, index) => {
-    link.addEventListener("click", (event) => {
-      const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      const modifiedClick = event.button !== 0
-        || event.ctrlKey
-        || event.metaKey
-        || event.shiftKey
-        || event.altKey;
+    transitionRunning = true;
+    grid?.setAttribute("aria-busy", "true");
+    overlay.style.willChange = "transform";
 
-      if (modifiedClick || reducedMotion || transitionRunning || !saveReturnState(index)) {
+    const navigate = () => {
+      if (navigated) {
         return;
       }
+      navigated = true;
+      window.clearTimeout(safetyTimer);
+      overlay.style.willChange = "";
+      window.location.assign(link.href);
+    };
 
-      event.preventDefault();
-      transitionRunning = true;
+    if (isTouch) {
+      overlay.style.opacity = "0";
+    }
 
-      const source = getVisibleProjectFrame(link);
-      const target = getTransitionFrame();
-      const overlay = createOverlay(source);
-      const grid = link.closest(".project-grid");
-      grid?.classList.add("is-transitioning");
+    const motion = overlay.animate(
+      [{ transform: from }, { transform: "none" }],
+      { duration: CONFIG.duration, easing: CONFIG.easing, fill: "forwards" },
+    );
+    const fade = isTouch
+      ? overlay.animate(
+        [{ opacity: 0 }, { opacity: 1 }],
+        { duration: CONFIG.touchFadeIn, easing: CONFIG.easing, fill: "forwards" },
+      )
+      : null;
 
-      let navigated = false;
-      const navigate = () => {
-        if (navigated) {
-          return;
-        }
+    safetyTimer = window.setTimeout(navigate, CONFIG.duration + 400);
+    Promise.all([finish(motion), fade ? finish(fade) : Promise.resolve()])
+      .then(navigate);
 
-        navigated = true;
-        window.clearTimeout(safetyTimeout);
-        overlay.style.cssText = `inset: ${CONFIG.transitionInset}px; border-radius: 0;`;
-        window.location.href = link.href;
-      };
-      const safetyTimeout = window.setTimeout(navigate, CONFIG.transitionDuration + 400);
-
-      animateFrame(overlay, source, target, false, navigate);
-    });
-  });
-}
-
-function setupProjectViewport() {
-  if (!projectViewport || !header) {
-    return;
   }
 
-  let queued = false;
-  const createStretchSide = () => {
-    const side = document.createElement("div");
-    side.className = "project-stretch-side";
-    side.setAttribute("aria-hidden", "true");
-    document.body.append(side);
-    return side;
-  };
-  const stretchSides = {
-    top: [createStretchSide(), createStretchSide()],
-    bottom: [createStretchSide(), createStretchSide()],
-  };
+  // Intercepts eligible primary project activations for the transform transition.
+  function handleProjectClick(event, link, index) {
+    const modified = event.button !== 0
+      || event.metaKey
+      || event.ctrlKey
+      || event.shiftKey
+      || event.altKey;
 
-  function setStretch(block, className, sides, rect, height, top) {
-    if (height <= 0) {
-      clearStretch(block, className, sides);
+    if (modified || transitionRunning || prefersReducedMotion() || !("animate" in document.createElement("div"))) {
       return;
     }
 
-    block.classList.add(className);
-    const left = snapToDevicePixel(rect.left);
-    const right = snapToDevicePixel(rect.right - 1);
-    const edgeTop = snapToDevicePixel(top);
-    const edgeHeight = snapToDevicePixel(height);
-    sides.forEach((side, index) => {
-      side.style.left = `${index === 0 ? left : right}px`;
-      side.style.top = `${edgeTop}px`;
-      side.style.height = `${edgeHeight}px`;
-      side.style.opacity = "1";
-    });
+    event.preventDefault();
+    if (!saveReturnState(index, link.dataset.project)) {
+      window.location.assign(link.href);
+      return;
+    }
+    runOpenTransition(link, index);
   }
 
-  function clearStretch(block, className, sides) {
-    if (!block.classList.contains(className)) {
+  // Plays the reverse transition after returning to the homepage.
+  function runReturnTransition(event) {
+    const blocks = getProjectBlocks();
+
+    if (event?.persisted) {
+      cleanTransition();
+    }
+
+    if (!blocks.length) {
       return;
     }
 
-    block.classList.remove(className);
-    sides.forEach((side) => {
-      side.style.opacity = "0";
-    });
-  }
-
-  function update() {
-    const headerBottom = snapToDevicePixel(header.getBoundingClientRect().bottom);
-    document.documentElement.style.setProperty("--header-bottom", `${headerBottom}px`);
-    const viewportRect = projectViewport.getBoundingClientRect();
-    const threshold = 1 / (window.devicePixelRatio || 1);
-    let touchesTop = projectViewport.scrollTop <= threshold;
-    let touchesBottom = projectViewport.scrollTop + projectViewport.clientHeight
-      >= projectViewport.scrollHeight - threshold;
-
-    projectLinks.forEach((block) => {
-      const rect = block.getBoundingClientRect();
-      touchesTop ||= rect.top <= viewportRect.top + threshold
-        && rect.bottom >= viewportRect.top - threshold;
-      touchesBottom ||= rect.top <= viewportRect.bottom + threshold
-        && rect.bottom >= viewportRect.bottom - threshold;
-    });
-
-    const firstBlock = projectLinks[0];
-    const lastBlock = projectLinks[projectLinks.length - 1];
-    const firstRect = firstBlock.getBoundingClientRect();
-    const lastRect = lastBlock.getBoundingClientRect();
-    const topStretch = projectViewport.scrollTop <= threshold
-      ? firstRect.top - viewportRect.top
-      : 0;
-    const bottomStretch = projectViewport.scrollTop + projectViewport.clientHeight
-      >= projectViewport.scrollHeight - threshold
-      ? viewportRect.bottom - lastRect.bottom
-      : 0;
-
-    if (topStretch > threshold) {
-      setStretch(
-        firstBlock,
-        "is-top-stretched",
-        stretchSides.top,
-        firstRect,
-        topStretch,
-        viewportRect.top,
-      );
-    } else {
-      clearStretch(firstBlock, "is-top-stretched", stretchSides.top);
-    }
-
-    if (bottomStretch > threshold) {
-      setStretch(
-        lastBlock,
-        "is-bottom-stretched",
-        stretchSides.bottom,
-        lastRect,
-        bottomStretch,
-        viewportRect.bottom - bottomStretch,
-      );
-    } else {
-      clearStretch(lastBlock, "is-bottom-stretched", stretchSides.bottom);
-    }
-
-    projectViewport.classList.toggle("has-top-edge", touchesTop);
-    projectViewport.classList.toggle("has-bottom-edge", touchesBottom);
-  }
-
-  function scheduleUpdate() {
-    if (queued) {
+    if (transitionRunning) {
       return;
     }
 
-    queued = true;
+    const state = takeReturnState();
+    if (!state || prefersReducedMotion()) {
+      cleanTransition();
+      return;
+    }
+
+    const block = blocks[state.index];
+    if (!block || block.dataset.project !== state.project) {
+      cleanTransition();
+      return;
+    }
+
+    restoreHomeScrollPosition(state.scrollTop);
+    const overlay = createOverlay(getProjectColor(block));
+    const to = getBlockTransform(block, overlay);
+    const isTouch = !window.matchMedia("(hover: hover)").matches;
+
+    transitionRunning = true;
+    overlay.style.willChange = "transform";
+    block.classList.add(CLASSES.landing);
+
     window.requestAnimationFrame(() => {
-      queued = false;
-      update();
+      root.classList.remove(CLASSES.returning);
+      delete root.dataset.returning;
+
+      const motion = overlay.animate(
+        [{ transform: "none" }, { transform: to }],
+        { duration: CONFIG.duration, easing: CONFIG.easing, fill: "forwards" },
+      );
+      const fade = isTouch
+        ? overlay.animate(
+          [
+            { offset: 0, opacity: 1 },
+            { offset: (CONFIG.duration - CONFIG.touchFadeIn) / CONFIG.duration, opacity: 1 },
+            { offset: 1, opacity: 0 },
+          ],
+          { duration: CONFIG.duration, easing: CONFIG.easing, fill: "forwards" },
+        )
+        : null;
+
+      Promise.all([finish(motion), fade ? finish(fade) : Promise.resolve()])
+        .then(() => {
+          overlay.style.willChange = "";
+          overlay.remove();
+          transitionRunning = false;
+          window.requestAnimationFrame(() => block.classList.remove(CLASSES.landing));
+        });
     });
   }
 
-  refreshProjectViewport = scheduleUpdate;
-  projectViewport.addEventListener("scroll", scheduleUpdate, { passive: true });
-  projectViewport.addEventListener("touchmove", scheduleUpdate, { passive: true });
-  projectViewport.addEventListener("touchend", scheduleUpdate, { passive: true });
-  window.addEventListener("resize", scheduleUpdate);
-  window.addEventListener("orientationchange", scheduleUpdate);
-  window.visualViewport?.addEventListener("resize", scheduleUpdate);
-  update();
-}
-
-function initialize() {
-  document.documentElement.style.setProperty("--reveal-fade", `${CONFIG.revealDuration}ms`);
-  document.documentElement.style.setProperty("--transition-inset", `${CONFIG.transitionInset}px`);
-  setupProjectLinks();
-  setupProjectViewport();
-  runReturnTransition();
-}
-
-if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", initialize, { once: true });
-} else {
-  initialize();
-}
-
-window.addEventListener("pageshow", (event) => {
-  if (event.persisted) {
-    transitionRunning = false;
-    refreshProjectViewport();
+  // Updates the clipping viewport's header boundary after header layout changes.
+  function syncHeaderBoundary() {
+    const header = document.querySelector(SELECTORS.header);
+    if (!header) {
+      return;
+    }
+    const bottom = header.getBoundingClientRect().bottom;
+    root.style.setProperty("--header-bottom", bottom + "px");
   }
-  runReturnTransition(event);
-});
+
+  // Observes header sizing without attaching an always-running resize loop.
+  function observeHeaderBoundary() {
+    const header = document.querySelector(SELECTORS.header);
+    if (!header) {
+      return;
+    }
+    if ("ResizeObserver" in window) {
+      const observer = new ResizeObserver(() => {
+        window.requestAnimationFrame(syncHeaderBoundary);
+      });
+      observer.observe(header);
+    }
+    window.addEventListener("resize", () => {
+      window.requestAnimationFrame(syncHeaderBoundary);
+    }, { passive: true });
+    syncHeaderBoundary();
+  }
+
+  // Wires normal links while progressively enhancing eligible project activations.
+  function wireProjectLinks() {
+    getProjectBlocks().forEach((link, index) => {
+      link.addEventListener("click", (event) => handleProjectClick(event, link, index));
+    });
+  }
+
+  // Initializes shared timing values, layout measurement, and project behavior.
+  function init() {
+    root.style.setProperty("--reveal-fade", CONFIG.revealFade + "ms");
+    observeHeaderBoundary();
+    wireProjectLinks();
+    runReturnTransition();
+  }
+
+  document.addEventListener("DOMContentLoaded", init);
+  window.addEventListener("pageshow", runReturnTransition);
+})();

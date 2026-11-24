@@ -1,6 +1,7 @@
-# Alex Schenk Portfolio
+# Alex Schenk portfolio
 
-A small personal portfolio site for Alex Schenk, built with plain HTML, CSS, and vanilla JavaScript.
+This is a small, static brand strategy and design portfolio built with plain HTML, CSS, and vanilla JavaScript.
 
-All pages are flat root-level HTML files and use plain relative paths for local files; CSS `url()` paths are relative to `css/styles.css`.
-All non-project pages share the global header; project pages show only a back arrow. Do not use local fetches or ES modules.
+Pages are flat HTML files in the project root. Non-project pages share the global header; project pages show only a back arrow.
+
+See [AGENTS.md](AGENTS.md) for implementation rules and [SITE-RULES.md](SITE-RULES.md) for the editorial and visual rules.

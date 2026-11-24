@@ -10,46 +10,46 @@
     <meta property="og:url" content="https://schenksalot.com" />
     <meta name="theme-color" content="#ffffff" />
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='white'/%3E%3Ctext x='32' y='46' text-anchor='middle' font-family='Arial,sans-serif' font-size='44' font-weight='700' fill='black'%3EA%3C/text%3E%3C/svg%3E" />
-    <link rel="preload" as="image" href="assets/img/name-sprite.webp" type="image/webp" />
+    <link rel="preload" as="font" href="assets/fonts/Beroga.ttf" type="font/ttf" crossorigin />
     <link rel="stylesheet" href="css/styles.css" />
     <!-- Prevent a first-paint flash before the return-frame animation begins. -->
-    <script>try { if (sessionStorage.getItem('frameReturn')) document.documentElement.classList.add('is-returning'); } catch (e) {}</script>
+    <script>try{var s=sessionStorage.getItem('frameReturn');if(s){var d=JSON.parse(s);document.documentElement.classList.add('is-returning');if(d&&d.project)document.documentElement.dataset.returning=d.project;}}catch(e){}</script>
     <title>Alex Schenk</title>
   </head>
   <body class="home-page">
     <header class="site-header">
       <a id="site-name" href="index.html">
-        <span class="name-anim"><img class="name-strip" src="assets/img/name-sprite.webp" alt="Alex Schenk" width="5120" height="114" decoding="async" fetchpriority="high"></span>
+        alex schenk
       </a>
       <nav aria-label="Primary">
-        <a href="#about">About</a>
-        <a href="#contact">Contact</a>
+        <a href="about.html">About</a>
+        <a href="contact.html">Contact</a>
       </nav>
     </header>
     <main class="project-viewport">
       <div class="project-grid">
-        <a class="project-block" href="wikipedia.html">
+        <a class="project-block" data-project="wikipedia" href="wikipedia.html">
           <div class="project-content">
             <span class="project-label">Concept</span>
             <h2>Wikipedia, by people</h2>
             <p>[one-sentence problem]</p>
           </div>
         </a>
-        <a class="project-block" href="melone-hatley.html">
+        <a class="project-block" data-project="melone" href="melone-hatley.html">
           <div class="project-content">
             <span class="project-label">Client work</span>
             <h2>Boring legal ads</h2>
             <p>[one-sentence problem]</p>
           </div>
         </a>
-        <a class="project-block" href="phrases.html">
+        <a class="project-block" data-project="phrases" href="phrases.html">
           <div class="project-content">
             <span class="project-label">Band</span>
             <h2>Phrases</h2>
             <p>[one-sentence problem]</p>
           </div>
         </a>
-        <a class="project-block" href="help-the-homeless.html">
+        <a class="project-block" data-project="homeless" href="help-the-homeless.html">
           <div class="project-content">
             <span class="project-label">Concept</span>
             <h2>How you help</h2>
