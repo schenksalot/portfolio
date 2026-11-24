@@ -146,8 +146,7 @@ main {
   text-decoration: none;
 }
 
-.project-block:hover,
-.project-block:focus-visible {
+.project-block:hover {
   background: var(--hover);
 }
 

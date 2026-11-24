@@ -183,6 +183,7 @@ function runReturnTransition(event) {
 
   animateFrame(overlay, target, source, true, () => {
     overlay.remove();
+    block.closest(".project-grid")?.classList.remove("is-transitioning");
     transitionRunning = false;
     window.requestAnimationFrame(() => block.classList.remove("is-landing"));
   });
