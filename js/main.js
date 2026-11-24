@@ -233,7 +233,32 @@ function setupCardEdges() {
   lowerMask.className = "viewport-edge-mask";
   lowerMask.setAttribute("aria-hidden", "true");
   document.body.append(lowerMask);
+  const mobileLayout = window.matchMedia("(max-width: 700px)");
   let queued = false;
+  let mobileEdgesCleared = false;
+  let lastHeaderBottom = "";
+  let lastBottomEdge = "";
+
+  function setRootEdge(name, value) {
+    if (value === (name === "--header-bottom" ? lastHeaderBottom : lastBottomEdge)) {
+      return;
+    }
+
+    document.documentElement.style.setProperty(name, value);
+    if (name === "--header-bottom") {
+      lastHeaderBottom = value;
+    } else {
+      lastBottomEdge = value;
+    }
+  }
+
+  function clearCardEdges() {
+    projectLinks.forEach((block) => {
+      block.classList.remove("is-top-clipped", "is-bottom-clipped");
+      block.style.removeProperty("--edge-left");
+      block.style.removeProperty("--edge-width");
+    });
+  }
 
   function update() {
     const pagePad = getPagePadding();
@@ -245,8 +270,18 @@ function setupCardEdges() {
       ? snapToDevicePixel(header.getBoundingClientRect().bottom)
       : 0;
 
-    document.documentElement.style.setProperty("--header-bottom", `${headerBottom}px`);
-    document.documentElement.style.setProperty("--bottom-edge", `${bottomEdge}px`);
+    setRootEdge("--header-bottom", `${headerBottom}px`);
+    setRootEdge("--bottom-edge", `${bottomEdge}px`);
+
+    if (mobileLayout.matches) {
+      if (!mobileEdgesCleared) {
+        clearCardEdges();
+        mobileEdgesCleared = true;
+      }
+      return;
+    }
+
+    mobileEdgesCleared = false;
 
     projectLinks.forEach((block) => {
       const rect = block.getBoundingClientRect();

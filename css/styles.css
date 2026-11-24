@@ -316,7 +316,7 @@ html.is-returning body::after {
   .site-header::after {
     position: absolute;
     right: var(--page-pad);
-    bottom: 0;
+    bottom: -1px;
     left: var(--page-pad);
     height: 1px;
     background: var(--ink);
@@ -326,6 +326,20 @@ html.is-returning body::after {
 
   .project-block.is-top-clipped::before {
     display: none;
+  }
+
+  .project-block.is-bottom-clipped::after {
+    display: none;
+  }
+
+  .viewport-edge-mask::before {
+    position: absolute;
+    right: var(--page-pad);
+    top: -1px;
+    left: var(--page-pad);
+    height: 1px;
+    background: var(--ink);
+    content: "";
   }
 
   .project-block {
