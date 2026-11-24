@@ -1,21 +1,25 @@
 const CONFIG = {
-  // Duration of forward and reverse frame travel in milliseconds.
-  duration: 500,
-  // Fraction of duration each frame edge trails behind the first edge.
+  // Project-frame travel and returning-content reveal timing in milliseconds.
+  transitionDuration: 500,
+  revealDuration: 150,
+  // Each frame edge trails the first edge by this fraction of the transition.
   edgeStagger: { top: 0, left: 0.04, bottom: 0.08, right: 0.12 },
-  // Peak corner radius in pixels; set to 0 to disable the mid-flight curve.
+  // Keep transition corners square; raise this only to introduce a rounded flight path.
   cornerPeak: 0,
-  // Duration in milliseconds for the returning block content reveal.
-  revealFade: 150,
-  // Query parameter that enables the temporary mobile viewport diagnostic panel.
-  viewportDebugParameter: "viewport-debug",
 };
 
-let transitionRunning = false;
 const projectLinks = Array.from(document.querySelectorAll(".project-block"));
+const header = document.querySelector(".site-header");
+let transitionRunning = false;
+let refreshCardEdges = () => {};
 
 function clamp(value, minimum, maximum) {
   return Math.min(Math.max(value, minimum), maximum);
+}
+
+function snapToDevicePixel(value) {
+  const ratio = window.devicePixelRatio || 1;
+  return Math.round(value * ratio) / ratio;
 }
 
 function easeInOutQuart(value) {
@@ -24,31 +28,31 @@ function easeInOutQuart(value) {
     : 1 - ((-2 * value + 2) ** 4) / 2;
 }
 
-function snapToDevicePixel(value) {
-  const ratio = window.devicePixelRatio || 1;
-  return Math.round(value * ratio) / ratio;
+function getPagePadding() {
+  return header
+    ? Number.parseFloat(getComputedStyle(header).paddingLeft)
+    : 0;
 }
 
-function frameAt(progress, start, end) {
-  const maxLag = Math.max(...Object.values(CONFIG.edgeStagger));
-  const edges = {};
+function getViewportFrame(pagePad = getPagePadding()) {
+  return {
+    top: pagePad,
+    left: pagePad,
+    right: document.documentElement.clientWidth - pagePad,
+    bottom: document.documentElement.clientHeight - pagePad,
+  };
+}
 
-  Object.keys(CONFIG.edgeStagger).forEach((edge) => {
-    const lagged = clamp(
-      (progress - CONFIG.edgeStagger[edge]) / (1 - maxLag),
-      0,
-      1,
-    );
-    edges[edge] = snapToDevicePixel(
-      start[edge] + (end[edge] - start[edge]) * easeInOutQuart(lagged),
-    );
-  });
+function getVisibleProjectFrame(block, pagePad) {
+  const rect = block.getBoundingClientRect();
+  const headerBottom = header ? header.getBoundingClientRect().bottom : 0;
+  const viewportBottom = document.documentElement.clientHeight - pagePad;
 
   return {
-    ...edges,
-    radius: progress === 0 || progress === 1
-      ? 0
-      : CONFIG.cornerPeak * Math.sin(Math.PI * progress),
+    top: snapToDevicePixel(Math.max(rect.top, headerBottom)),
+    left: snapToDevicePixel(rect.left),
+    right: snapToDevicePixel(rect.right),
+    bottom: snapToDevicePixel(Math.min(rect.bottom, viewportBottom)),
   };
 }
 
@@ -60,39 +64,22 @@ function applyFrame(overlay, frame) {
   overlay.style.borderRadius = `${frame.radius}px`;
 }
 
-function getPagePadding() {
-  const measurement = document.createElement("div");
-  measurement.setAttribute("aria-hidden", "true");
-  measurement.className = "page-pad-measurement";
-  document.body.append(measurement);
-  const padding = Number.parseFloat(getComputedStyle(measurement).width);
-  measurement.remove();
-  return padding;
-}
+function frameAt(progress, start, end) {
+  const maxLag = Math.max(...Object.values(CONFIG.edgeStagger));
+  const edges = {};
 
-function getInsetFrame(pagePad = getPagePadding()) {
-  const viewportWidth = document.documentElement.clientWidth;
-  const viewportHeight = document.documentElement.clientHeight;
+  Object.entries(CONFIG.edgeStagger).forEach(([edge, delay]) => {
+    const localProgress = clamp((progress - delay) / (1 - maxLag), 0, 1);
+    edges[edge] = snapToDevicePixel(
+      start[edge] + (end[edge] - start[edge]) * easeInOutQuart(localProgress),
+    );
+  });
 
   return {
-    top: pagePad,
-    left: pagePad,
-    right: viewportWidth - pagePad,
-    bottom: viewportHeight - pagePad,
-  };
-}
-
-function getVisibleProjectFrame(block, pagePad) {
-  const rect = block.getBoundingClientRect();
-  const header = document.querySelector(".site-header");
-  const headerBottom = header ? header.getBoundingClientRect().bottom : 0;
-  const viewportBottom = document.documentElement.clientHeight - pagePad;
-
-  return {
-    top: snapToDevicePixel(Math.max(rect.top, headerBottom)),
-    left: snapToDevicePixel(rect.left),
-    right: snapToDevicePixel(rect.right),
-    bottom: snapToDevicePixel(Math.min(rect.bottom, viewportBottom)),
+    ...edges,
+    radius: progress === 0 || progress === 1
+      ? 0
+      : CONFIG.cornerPeak * Math.sin(Math.PI * progress),
   };
 }
 
@@ -105,13 +92,12 @@ function createOverlay(frame) {
   return overlay;
 }
 
-function runFrameAnimation(overlay, start, end, reverse, onComplete) {
+function animateFrame(overlay, start, end, reverse, onComplete) {
   const startedAt = performance.now();
 
   function step(now) {
-    const elapsed = clamp((now - startedAt) / CONFIG.duration, 0, 1);
-    const progress = reverse ? 1 - elapsed : elapsed;
-    applyFrame(overlay, frameAt(progress, start, end));
+    const elapsed = clamp((now - startedAt) / CONFIG.transitionDuration, 0, 1);
+    applyFrame(overlay, frameAt(reverse ? 1 - elapsed : elapsed, start, end));
 
     if (elapsed < 1) {
       window.requestAnimationFrame(step);
@@ -126,114 +112,99 @@ function runFrameAnimation(overlay, start, end, reverse, onComplete) {
 
 function removeTransitionArtifacts() {
   document.querySelectorAll(".frame-overlay").forEach((overlay) => overlay.remove());
-  document.querySelectorAll(".project-grid.is-transitioning").forEach((grid) => grid.classList.remove("is-transitioning"));
-  document.querySelectorAll(".project-block.is-landing").forEach((block) => block.classList.remove("is-landing"));
+  document.querySelectorAll(".project-grid.is-transitioning").forEach((grid) => {
+    grid.classList.remove("is-transitioning");
+  });
+  document.querySelectorAll(".project-block.is-landing").forEach((block) => {
+    block.classList.remove("is-landing");
+  });
   document.documentElement.classList.remove("is-returning");
   transitionRunning = false;
 }
 
-function getFrameReturn() {
+function saveReturnState(index) {
   try {
-    const value = sessionStorage.getItem("frameReturn");
-    if (!value) {
-      return null;
-    }
+    sessionStorage.setItem("frameReturn", JSON.stringify({ index, scrollY: window.scrollY }));
+    return true;
+  } catch {
+    return false;
+  }
+}
 
+function consumeReturnState() {
+  try {
+    const stored = sessionStorage.getItem("frameReturn");
     sessionStorage.removeItem("frameReturn");
-    return JSON.parse(value);
-  } catch (error) {
+    return stored ? JSON.parse(stored) : null;
+  } catch {
     return null;
   }
 }
 
 function runReturnTransition(event) {
-  // Project pages share this script but must preserve the state for index.html.
   if (!projectLinks.length) {
     return;
   }
 
-  const returnState = getFrameReturn();
-
+  const returnState = consumeReturnState();
   if (!returnState) {
-    if (event && event.persisted) {
+    if (event?.persisted) {
       removeTransitionArtifacts();
     }
     return;
   }
 
-  const savedScrollPosition = Number(returnState.scrollY);
-  if (Number.isFinite(savedScrollPosition)) {
-    window.scrollTo(0, savedScrollPosition);
+  if (Number.isFinite(Number(returnState.scrollY))) {
+    window.scrollTo(0, Number(returnState.scrollY));
   }
 
   const block = projectLinks[returnState.index];
-  const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-  if (prefersReducedMotion || !block || transitionRunning) {
+  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (reducedMotion || !block || transitionRunning) {
     removeTransitionArtifacts();
     return;
   }
 
   transitionRunning = true;
-
-  // Read the returning block and inset frame before updating the visible state.
   const pagePad = getPagePadding();
+  const source = getViewportFrame(pagePad);
   const target = getVisibleProjectFrame(block, pagePad);
-  const source = getInsetFrame(pagePad);
   const overlay = document.querySelector(".frame-overlay") || createOverlay(source);
+
   applyFrame(overlay, { ...source, radius: 0 });
   document.documentElement.classList.remove("is-returning");
   block.classList.add("is-landing");
 
-  runFrameAnimation(overlay, target, source, true, () => {
+  animateFrame(overlay, target, source, true, () => {
     overlay.remove();
-    document.querySelectorAll(".project-grid.is-transitioning").forEach((grid) => grid.classList.remove("is-transitioning"));
     transitionRunning = false;
-    window.requestAnimationFrame(() => {
-      block.classList.remove("is-landing");
-    });
+    window.requestAnimationFrame(() => block.classList.remove("is-landing"));
   });
-}
-
-function saveFrameReturn(index, scrollY) {
-  try {
-    sessionStorage.setItem("frameReturn", JSON.stringify({ index, scrollY }));
-    return true;
-  } catch (error) {
-    return false;
-  }
 }
 
 function setupProjectLinks() {
   projectLinks.forEach((link, index) => {
     link.addEventListener("click", (event) => {
-      const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const modifiedClick = event.button !== 0
+        || event.ctrlKey
+        || event.metaKey
+        || event.shiftKey
+        || event.altKey;
 
-      if (
-        event.button !== 0 ||
-        event.ctrlKey ||
-        event.metaKey ||
-        event.shiftKey ||
-        event.altKey ||
-        prefersReducedMotion ||
-        transitionRunning ||
-        !saveFrameReturn(index, window.scrollY)
-      ) {
+      if (modifiedClick || reducedMotion || transitionRunning || !saveReturnState(index)) {
         return;
       }
 
       event.preventDefault();
       transitionRunning = true;
 
-      // Read every layout value before creating or styling the overlay.
       const pagePad = getPagePadding();
       const source = getVisibleProjectFrame(link, pagePad);
-      const target = getInsetFrame(pagePad);
+      const target = getViewportFrame(pagePad);
       const overlay = createOverlay(source);
       const grid = link.closest(".project-grid");
-      if (grid) {
-        grid.classList.add("is-transitioning");
-      }
+      grid?.classList.add("is-transitioning");
 
       let navigated = false;
       const navigate = () => {
@@ -243,17 +214,12 @@ function setupProjectLinks() {
 
         navigated = true;
         window.clearTimeout(safetyTimeout);
-        overlay.style.top = "";
-        overlay.style.left = "";
-        overlay.style.width = "";
-        overlay.style.height = "";
-        overlay.style.borderRadius = "0";
-        overlay.style.inset = "var(--page-pad)";
+        overlay.style.cssText = "inset: var(--page-pad); border-radius: 0;";
         window.location.href = link.href;
       };
-      const safetyTimeout = window.setTimeout(navigate, CONFIG.duration + 400);
+      const safetyTimeout = window.setTimeout(navigate, CONFIG.transitionDuration + 400);
 
-      runFrameAnimation(overlay, source, target, false, navigate);
+      animateFrame(overlay, source, target, false, navigate);
     });
   });
 }
@@ -264,140 +230,78 @@ function setupCardEdges() {
   }
 
   document.body.classList.add("project-edges-active");
-  let pagePad = getPagePadding();
-  const header = document.querySelector(".site-header");
-  const viewportMeasurement = document.createElement("div");
-  const smallViewportMeasurement = document.createElement("div");
-  const viewportDebugEnabled = window.matchMedia("(max-width: 700px)").matches
-    || new URLSearchParams(window.location.search).has(CONFIG.viewportDebugParameter);
-  let viewportDebug = viewportDebugEnabled
-    ? document.querySelector(".viewport-debug")
-    : null;
-  let edgeUpdateQueued = false;
+  let queued = false;
 
-  viewportMeasurement.setAttribute("aria-hidden", "true");
-  viewportMeasurement.className = "viewport-height-measurement";
-  document.body.append(viewportMeasurement);
-  smallViewportMeasurement.setAttribute("aria-hidden", "true");
-  smallViewportMeasurement.className = "small-viewport-height-measurement";
-  document.body.append(smallViewportMeasurement);
-
-  if (viewportDebugEnabled && !viewportDebug) {
-    viewportDebug = document.createElement("output");
-    viewportDebug.className = "viewport-debug";
-    viewportDebug.setAttribute("aria-label", "Viewport diagnostic values");
-    document.body.append(viewportDebug);
-  }
-
-  function getSafeViewportBottom() {
-    const visualViewport = window.visualViewport;
-    const candidates = [
-      viewportMeasurement.getBoundingClientRect().bottom,
-      smallViewportMeasurement.getBoundingClientRect().bottom,
-      window.innerHeight,
-      document.documentElement.clientHeight,
-      visualViewport && visualViewport.offsetTop + visualViewport.height,
-    ].filter((value) => Number.isFinite(value) && value > 0);
-
-    return Math.min(...candidates);
-  }
-
-  function updateVisibleCardEdges() {
-    // Use the earliest browser-reported edge so card chrome never appears behind mobile UI.
-    const viewportBottom = getSafeViewportBottom();
+  function update() {
+    const pagePad = getPagePadding();
+    const viewportBottom = document.documentElement.clientHeight;
     const bottomEdge = viewportBottom - pagePad;
     const pixelRatio = window.devicePixelRatio || 1;
-    const edgeThreshold = 1 / pixelRatio;
+    const threshold = 1 / pixelRatio;
     const headerBottom = header
-      ? Math.round(header.getBoundingClientRect().bottom * pixelRatio) / pixelRatio
+      ? snapToDevicePixel(header.getBoundingClientRect().bottom)
       : 0;
-    const cardRects = projectLinks.map((block) => ({
-      block,
-      rect: block.getBoundingClientRect(),
-    }));
 
     document.documentElement.style.setProperty("--header-bottom", `${headerBottom}px`);
     document.documentElement.style.setProperty("--bottom-edge", `${bottomEdge}px`);
 
-    if (viewportDebug) {
-      const visualViewport = window.visualViewport;
-      viewportDebug.textContent = [
-        `CSS 100dvh: ${viewportMeasurement.getBoundingClientRect().bottom.toFixed(1)}`,
-        `CSS 100svh: ${smallViewportMeasurement.getBoundingClientRect().bottom.toFixed(1)}`,
-        `innerHeight: ${window.innerHeight.toFixed(1)}`,
-        `clientHeight: ${document.documentElement.clientHeight.toFixed(1)}`,
-        `visual height: ${visualViewport ? visualViewport.height.toFixed(1) : "n/a"}`,
-        `visual offsetTop: ${visualViewport ? visualViewport.offsetTop.toFixed(1) : "n/a"}`,
-        `safe bottom: ${viewportBottom.toFixed(1)}`,
-        `header edge: ${headerBottom.toFixed(1)}`,
-        `bottom edge: ${bottomEdge.toFixed(1)}`,
-      ].join("\n");
-    }
+    projectLinks.forEach((block) => {
+      const rect = block.getBoundingClientRect();
+      const intersectsTop = rect.top < headerBottom - threshold && rect.bottom > headerBottom;
+      const intersectsBottom = rect.top < bottomEdge && rect.bottom > bottomEdge + threshold;
+      const hasClippedEdge = intersectsTop || intersectsBottom;
 
-    cardRects.forEach(({ block, rect }) => {
-      const intersectsBottomEdge = rect.top < bottomEdge && rect.bottom > bottomEdge + edgeThreshold;
-      const intersectsTopEdge = rect.top < headerBottom - edgeThreshold && rect.bottom > headerBottom;
-      const edgeLeft = Math.round(rect.left * pixelRatio) / pixelRatio;
-      const edgeWidth = Math.round(rect.width * pixelRatio) / pixelRatio;
+      block.classList.toggle("is-top-clipped", intersectsTop);
+      block.classList.toggle("is-bottom-clipped", intersectsBottom);
 
-      if (!intersectsBottomEdge) {
-        block.classList.remove("is-bottom-clipped");
-        block.style.removeProperty("--bottom-edge-left");
-        block.style.removeProperty("--bottom-edge-width");
+      if (hasClippedEdge) {
+        block.style.setProperty("--edge-left", `${snapToDevicePixel(rect.left)}px`);
+        block.style.setProperty("--edge-width", `${snapToDevicePixel(rect.width)}px`);
       } else {
-        block.classList.add("is-bottom-clipped");
-        block.style.setProperty("--bottom-edge-left", `${edgeLeft}px`);
-        block.style.setProperty("--bottom-edge-width", `${edgeWidth}px`);
+        block.style.removeProperty("--edge-left");
+        block.style.removeProperty("--edge-width");
       }
-
-      if (!intersectsTopEdge) {
-        block.classList.remove("is-top-clipped");
-        block.style.removeProperty("--top-edge-left");
-        block.style.removeProperty("--top-edge-width");
-      } else {
-        block.classList.add("is-top-clipped");
-        block.style.setProperty("--top-edge-left", `${edgeLeft}px`);
-        block.style.setProperty("--top-edge-width", `${edgeWidth}px`);
-      }
-
     });
   }
 
-  function scheduleVisibleCardEdgeUpdate() {
-    if (edgeUpdateQueued) {
+  function scheduleUpdate() {
+    if (queued) {
       return;
     }
 
-    edgeUpdateQueued = true;
+    queued = true;
     window.requestAnimationFrame(() => {
-      edgeUpdateQueued = false;
-      updateVisibleCardEdges();
+      queued = false;
+      update();
     });
   }
 
-  window.addEventListener("scroll", scheduleVisibleCardEdgeUpdate, { passive: true });
-  window.addEventListener("resize", () => {
-    pagePad = getPagePadding();
-    scheduleVisibleCardEdgeUpdate();
-  });
-  document.addEventListener("fullscreenchange", scheduleVisibleCardEdgeUpdate);
-  if (window.visualViewport) {
-    window.visualViewport.addEventListener("resize", scheduleVisibleCardEdgeUpdate);
-    window.visualViewport.addEventListener("scroll", scheduleVisibleCardEdgeUpdate);
-  }
-  updateVisibleCardEdges();
+  refreshCardEdges = scheduleUpdate;
+  window.addEventListener("scroll", scheduleUpdate, { passive: true });
+  window.addEventListener("resize", scheduleUpdate);
+  window.addEventListener("orientationchange", scheduleUpdate);
+  window.visualViewport?.addEventListener("resize", scheduleUpdate);
+  window.visualViewport?.addEventListener("scroll", scheduleUpdate);
+  update();
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  document.documentElement.style.setProperty("--reveal-fade", `${CONFIG.revealFade}ms`);
+function initialize() {
+  document.documentElement.style.setProperty("--reveal-fade", `${CONFIG.revealDuration}ms`);
   setupProjectLinks();
   setupCardEdges();
   runReturnTransition();
-});
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initialize, { once: true });
+} else {
+  initialize();
+}
 
 window.addEventListener("pageshow", (event) => {
   if (event.persisted) {
     transitionRunning = false;
+    refreshCardEdges();
   }
   runReturnTransition(event);
 });

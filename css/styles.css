@@ -2,19 +2,17 @@
 :root {
   --bg: #ffffff;
   --ink: #000000;
+  --hover: #f4f4f4;
   --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --block-hover: #f4f4f4;
-  --header-space: 6rem;
-  --header-space-mobile: 2.75rem;
-  --site-header-pad: clamp(2.75rem, 8.6vw, 6rem);
-  --page-pad: var(--header-space); /* Shared homepage and project-frame edge inset. */
+  --page-pad: clamp(1.25rem, 3.5vw, 3.5rem);
+  --header-block-pad: clamp(1.25rem, 2.5vw, 2.5rem);
+  --card-pad: clamp(1.25rem, 2vw, 1.5rem);
+  --grid-gap: clamp(0.75rem, 1.5vw, 1.25rem);
   --header-bottom: 0px;
   --bottom-edge: calc(100dvh - var(--page-pad));
-  --grid-gap: clamp(1rem, 2vw, 1.5rem);
-  --block-space: 1.5rem;
-  --name-fps: 10; /* Animation frames per second. */
+  --name-fps: 10; /* Hand-drawn name frames per second. */
   --name-steps: 8; /* Ping-pong order: 1,2,3,4,5,4,3,2. */
-  --name-width: min(100%, clamp(260px, calc(13vw + 31.5rem), 800px)); /* Visible name width. */
+  --name-width: min(100%, clamp(260px, calc(13vw + 31.5rem), 800px));
 }
 
 *,
@@ -36,16 +34,16 @@ svg {
 }
 
 body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
   min-height: 100vh;
-  width: 100%;
+  overflow-x: hidden;
   overscroll-behavior: none;
   background: var(--bg);
   color: var(--ink);
   font-family: var(--font);
   line-height: 1.5;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: auto minmax(0, 1fr);
 }
 
 :focus-visible {
@@ -60,28 +58,26 @@ body {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   align-items: center;
-  row-gap: 0.75rem;
-  padding: var(--site-header-pad);
+  row-gap: 0.5rem;
+  padding: var(--header-block-pad) var(--page-pad);
   background: var(--bg);
 }
 
 #site-name {
+  align-self: center;
   min-width: 0;
   width: var(--name-width);
-  align-self: center;
 }
 
 nav {
   display: flex;
   align-items: center;
-  width: 100%;
-  justify-content: space-between;
-  gap: clamp(1.25rem, 3vw, 3rem);
+  gap: clamp(1rem, 2.5vw, 2rem);
+  width: fit-content;
+  justify-self: start;
 }
 
 nav a {
-  display: inline-flex;
-  align-items: center;
   color: inherit;
   font-size: clamp(1rem, 1.7vw, 1.375rem);
   font-weight: 300;
@@ -94,39 +90,9 @@ nav a:focus-visible {
   text-underline-offset: 0.2em;
 }
 
-@media (max-width: 900px) {
-  .site-header {
-    row-gap: 0.35rem;
-    padding-top: clamp(1.25rem, 3vw, 2rem);
-    padding-bottom: clamp(1.25rem, 3vw, 2rem);
-  }
-
-  nav {
-    width: fit-content;
-    justify-self: start;
-    justify-content: flex-start;
-    gap: 0.85rem;
-  }
-
-}
-
-@media (min-width: 901px) {
-  .site-header {
-    grid-template-columns: minmax(0, 1fr) auto;
-    row-gap: 0;
-  }
-
-  nav {
-    width: auto;
-    justify-self: end;
-    justify-content: flex-end;
-  }
-}
-
-/* Crops the five-frame strip to one visible name. */
+/* Crops the five-frame strip while compensating for its transparent left gutter. */
 .name-anim {
   display: block;
-  /* Compensates for the sprite's transparent cell gutter and visible left-side spacing. */
   width: 102.4%;
   max-width: none;
   aspect-ratio: 1024 / 114;
@@ -145,102 +111,54 @@ nav a:focus-visible {
 }
 
 @keyframes name-wiggle {
-  0% { transform: translateX(0); }
-  12.5% { transform: translateX(-20%); }
-  25% { transform: translateX(-40%); }
-  37.5% { transform: translateX(-60%); }
-  50% { transform: translateX(-80%); }
-  62.5% { transform: translateX(-60%); }
-  75% { transform: translateX(-40%); }
-  87.5% { transform: translateX(-20%); }
+  0%,
   100% { transform: translateX(0); }
+  12.5%,
+  87.5% { transform: translateX(-20%); }
+  25%,
+  75% { transform: translateX(-40%); }
+  37.5%,
+  62.5% { transform: translateX(-60%); }
+  50% { transform: translateX(-80%); }
 }
 
 main {
-  min-height: 0;
-  width: 100%;
   min-width: 0;
-  padding: 0 var(--site-header-pad) var(--page-pad);
+  min-height: 0;
+  padding: 0 var(--page-pad) var(--page-pad);
 }
 
 .project-grid {
   display: grid;
-  width: 100%;
-  min-width: 0;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   grid-template-rows: repeat(2, minmax(0, 1fr));
   gap: var(--grid-gap);
+  width: 100%;
   height: 100%;
-}
-
-@media (max-width: 900px) {
-  .project-grid {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: none;
-  }
 }
 
 .project-block {
   position: relative;
   display: block;
   min-height: 0;
-  padding: var(--block-space);
+  padding: var(--card-pad);
   border: 1px solid var(--ink);
   color: inherit;
   text-decoration: none;
 }
 
+.project-block:hover,
+.project-block:focus-visible {
+  background: var(--hover);
+}
+
 .project-content {
   position: sticky;
-  top: calc(var(--header-bottom) + var(--block-space));
+  top: calc(var(--header-bottom) + var(--card-pad));
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 0.5rem;
-}
-
-/* Redraws an intersecting card's bottom border at the fixed lower page padding. */
-.project-block.is-bottom-clipped::after {
-  position: fixed;
-  z-index: 21;
-  top: calc(var(--bottom-edge) - 1px);
-  left: var(--bottom-edge-left);
-  width: var(--bottom-edge-width);
-  height: 1px;
-  background: var(--ink);
-  content: "";
-  pointer-events: none;
-}
-
-/* Redraws an intersecting card's top border at the sticky header's lower edge. */
-.project-block.is-top-clipped::before {
-  position: fixed;
-  z-index: 9;
-  top: var(--header-bottom);
-  left: var(--top-edge-left);
-  width: var(--top-edge-width);
-  height: 1px;
-  background: var(--ink);
-  content: "";
-  pointer-events: none;
-}
-
-/* Hides all homepage content below the lower page padding. */
-body.project-edges-active::before {
-  position: fixed;
-  z-index: 20;
-  top: var(--bottom-edge);
-  right: 0;
-  bottom: 0;
-  left: 0;
-  background: var(--bg);
-  content: "";
-  pointer-events: none;
-}
-
-.project-block:hover,
-.project-block:focus-visible {
-  background: var(--block-hover);
 }
 
 .project-label,
@@ -254,20 +172,53 @@ body.project-edges-active::before {
   line-height: 1.15;
 }
 
+/* Replaces a card edge when it is clipped by the persistent viewport boundaries. */
+.project-block.is-bottom-clipped::after,
+.project-block.is-top-clipped::before {
+  position: fixed;
+  width: var(--edge-width);
+  height: 1px;
+  left: var(--edge-left);
+  background: var(--ink);
+  content: "";
+  pointer-events: none;
+}
+
+.project-block.is-bottom-clipped::after {
+  z-index: 21;
+  top: calc(var(--bottom-edge) - 1px);
+}
+
+.project-block.is-top-clipped::before {
+  z-index: 9;
+  top: var(--header-bottom);
+}
+
+/* The lower mask is activated directly by script for reliable mobile support. */
+body.project-edges-active::before {
+  position: fixed;
+  z-index: 20;
+  top: var(--bottom-edge);
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background: var(--bg);
+  content: "";
+  pointer-events: none;
+}
+
 /* Fixed destination frame used by each project page. */
 .project-frame {
   position: fixed;
   inset: var(--page-pad);
-  box-sizing: border-box;
   overflow-y: auto;
   overscroll-behavior: none;
   border: 1px solid var(--ink);
-  border-radius: 0;
   background: var(--bg);
 }
 
 .frame-header {
-  padding: var(--header-space);
+  padding: var(--page-pad);
 }
 
 .frame-back {
@@ -290,7 +241,7 @@ body.project-edges-active::before {
 }
 
 .frame-body {
-  padding: 0 var(--header-space) var(--header-space);
+  padding: 0 var(--page-pad) var(--page-pad);
   animation: frame-body-in 300ms ease-out both;
 }
 
@@ -309,58 +260,10 @@ body.project-edges-active::before {
 .frame-overlay {
   position: fixed;
   z-index: 100;
-  box-sizing: border-box;
   border: 1px solid var(--ink);
   background: var(--bg);
   pointer-events: none;
   contain: layout paint style;
-}
-
-.page-pad-measurement {
-  position: fixed;
-  width: var(--page-pad);
-  height: 0;
-  visibility: hidden;
-  pointer-events: none;
-}
-
-/* Lets script read the browser's current dynamic viewport in fixed-position coordinates. */
-.viewport-height-measurement {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 0;
-  height: 100dvh;
-  visibility: hidden;
-  pointer-events: none;
-}
-
-/* Represents the smallest mobile viewport while browser chrome is expanded. */
-.small-viewport-height-measurement {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 0;
-  height: 100svh;
-  visibility: hidden;
-  pointer-events: none;
-}
-
-/* Temporary, query-string-gated viewport readings for mobile browser debugging. */
-.viewport-debug {
-  position: fixed;
-  display: none;
-  z-index: 200;
-  top: calc(env(safe-area-inset-top, 0px) + 0.5rem);
-  right: calc(env(safe-area-inset-right, 0px) + 0.5rem);
-  max-width: calc(100% - 1rem);
-  padding: 0.5rem;
-  border: 1px solid var(--ink);
-  background: var(--bg);
-  color: var(--ink);
-  font: 0.75rem/1.35 ui-monospace, SFMono-Regular, Menlo, monospace;
-  white-space: pre;
-  pointer-events: none;
 }
 
 .project-grid.is-transitioning {
@@ -378,7 +281,6 @@ body.project-edges-active::before {
 html.is-returning body::after {
   position: fixed;
   z-index: 100;
-  box-sizing: border-box;
   inset: var(--page-pad);
   border: 1px solid var(--ink);
   background: var(--bg);
@@ -388,6 +290,49 @@ html.is-returning body::after {
 @keyframes frame-body-in {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+
+@media (min-width: 901px) {
+  .site-header {
+    grid-template-columns: minmax(0, 1fr) auto;
+    row-gap: 0;
+  }
+
+  nav {
+    justify-self: end;
+  }
+}
+
+@media (max-width: 900px) {
+  .project-grid {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+  }
+}
+
+@media (max-width: 700px) {
+  body {
+    display: block;
+  }
+
+  .site-header::after {
+    position: absolute;
+    right: var(--page-pad);
+    bottom: 0;
+    left: var(--page-pad);
+    height: 1px;
+    background: var(--ink);
+    content: "";
+    pointer-events: none;
+  }
+
+  .project-block.is-top-clipped::before {
+    display: none;
+  }
+
+  .project-block {
+    min-height: 11.9rem;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -403,71 +348,13 @@ html.is-returning body::after {
     transition-duration: 0.01ms !important;
   }
 
-  .name-strip {
+  .name-strip,
+  .frame-body {
     animation: none;
-  }
-
-  .frame-back svg {
-    transition: none;
   }
 
   .frame-back:hover svg,
   .frame-back:focus-visible svg {
     transform: none;
-  }
-
-  .frame-body {
-    animation: none;
-  }
-}
-
-@media (max-width: 700px) {
-  :root {
-    --page-pad: var(--header-space-mobile);
-  }
-
-  .viewport-debug {
-    display: block;
-  }
-
-  /* Keeps the header's clipping edge continuous through fast touch scrolls. */
-  .site-header::after {
-    position: absolute;
-    right: var(--site-header-pad);
-    bottom: 0;
-    left: var(--site-header-pad);
-    height: 1px;
-    background: var(--ink);
-    content: "";
-    pointer-events: none;
-  }
-
-  .project-block.is-top-clipped::before {
-    display: none;
-  }
-
-  body {
-    display: block;
-  }
-
-  main {
-    padding: 0 var(--site-header-pad) var(--page-pad);
-  }
-
-  .project-grid {
-    grid-template-columns: 1fr;
-    grid-template-rows: none;
-  }
-
-  .project-block {
-    min-height: 11.9rem;
-  }
-
-  .frame-header {
-    padding: var(--header-space-mobile);
-  }
-
-  .frame-body {
-    padding: 0 var(--header-space-mobile) var(--header-space-mobile);
   }
 }
