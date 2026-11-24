@@ -13,3 +13,4 @@
 - No JavaScript that fetches local files (it fails on file://), and no ES modules.
 - The fixed project-frame overlay is the sole exception to transform-only animation: one fixed element with no children may animate top, left, width, and height in a requestAnimationFrame loop with whole-device-pixel snapping so its 1px border remains exact.
 - The tiny inline return-state script in index.html is the sole inline-script exception; it prevents a project-frame flash before the reverse transition starts.
+- A temporary `?debug=viewport` diagnostic overlay is present; remove its clearly marked TEMP DEBUG blocks after viewport investigation is complete.
